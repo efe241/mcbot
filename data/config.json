@@ -1,0 +1,9 @@
+{
+  "cooldown_hours": 24,
+  "free_daily_limit": 1,
+  "vip_daily_limit": 2,
+  "admin_role_id": 0,
+  "vip_role_id": 0,
+  "log_channel_id": 0,
+  "required_status": "LeaksTr"
+}

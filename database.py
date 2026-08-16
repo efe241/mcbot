@@ -1,0 +1,806 @@
+import os
+import json
+import time
+import random
+from datetime import datetime, timedelta
+import threading
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+
+os.makedirs(DATA_DIR, exist_ok=True)
+
+SERVICES_FILE = os.path.join(DATA_DIR, "services.json")
+STOCKS_FILE = os.path.join(DATA_DIR, "stocks.json")
+USERS_FILE = os.path.join(DATA_DIR, "users.json")
+CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
+KEYS_FILE = os.path.join(DATA_DIR, "keys.json")
+
+# Re-entrant Lock
+_lock = threading.RLock()
+
+DEFAULT_CONFIG = {
+    "cooldown_hours": 24,
+    "free_daily_limit": 1,
+    "vip_daily_limit": 2,
+    "booster_daily_limit": 3,
+    "admin_role_id": 0,
+    "vip_role_id": 0,
+    "log_channel_id": 0,
+    "required_status": "LeaksTr",
+    "min_account_age_days": 7,
+    "invites_for_vip": 5,
+    "vip_coin_cost": 20,
+    "nitro_coin_cost": 100,
+    "gemini_coin_cost": 50,
+    "spotify_coin_cost": 100,
+    "hesapcomtr_link": "https://hesap.com.tr"
+}
+
+PRIME_COOKIE_TEXT = """# Netscape HTTP Cookie File
+.primevideo.com\tTRUE\t/\tTRUE\t1790306055\tat-main-av\tAtza|IwEBIEPnKEh4SmQvmLNbb4ZmsYR1ns8w97fNd20fCtKHev846Qa5JPCdwctdBUZ0s6yK3JiX7vASaPke2MxcCedNmflGiFEUfq1C0UkoVm2s8LHHdAUafzqfQ1i7oz6rhrGxNiOwFYfcBUt6uHsZaoMC2z0v_xjTGHScaGrdT9v6lXavWfKeTZHhxzOZ033VEHR_Xz-mhxGXaaUPddvAJ2P9jLNFF_UfBDWh9X0-fzyWmypx_24haG8z4zUQFeR9TSzm8vI
+.primevideo.com\tTRUE\t/\tFALSE\t1790306055\ti18n-prefs\tUSD
+.primevideo.com\tTRUE\t/\tFALSE\t1790306055\tlc-main-av\ten_US
+.primevideo.com\tTRUE\t/\tTRUE\t1790306055\tsess-at-main-av\t"yKtjrw6YOQWz84EkX42ku3yP8E5FXLxcNbSJo8K7Enc="
+.primevideo.com\tTRUE\t/\tTRUE\t1790306055\tsession-id-time\t2082787201l
+.primevideo.com\tTRUE\t/\tTRUE\t1790306055\tsession-token\tqJ2dHmohOI+egqxQzJo9oHwGfJS1Md/WRO2L+nsHRsNKfZ2E9Ebalu8cIEtSymmDFtYVJYYKMNqDw31aurrd/oDHR5DbbXavZIMtDhzfahe9eyWHZLKr7bQ759/LNw3YTyuamFGquOHcubxtL+8wI8D97e5t9xBURl+9Cd4SPqN2cvUfaDXNX+0GMXbNh6/M6O/1t1RN38WNm4MBjPZ0NYHMWiy3Q/hI0fi80kSUPp6l+JxhC7zdSwlMgV4mg6n5ebBUkx+L/JD9jBBwYMENQDTriMDbBo4Kxk4ugpsz/jzcZAMM7U3ldADhZgzdY7XhoCGTy7ZUdcXR0BELDZW5TkIGdfkgYtyZlz3ARWSU23J2p1YM08GICVDXExPHVmIx
+.primevideo.com\tTRUE\t/\tTRUE\t1790306055\tubid-main-av\t260-9405880-5673007
+.primevideo.com\tTRUE\t/\tTRUE\t1790306055\tx-main-av\t"IJm8u1LjM7OWEw9FwslJLE9NX7l2CMwXbfgmgX9@KEmy?eKGcsvQxxuNFhlgfZty"
+www.primevideo.com\tFALSE\t/\tFALSE\t1789010087\tcsm-hit\ttb:PWT0V8097V6V6WGR46MJ+s-J6AS6PR3KZ5CWA1BQ7CG|1758770087089&t:1758770087089&adb:adblk_no
+.primevideo.com\tTRUE\t/\tTRUE\t1793330348\tsession-id\t261-0943717-0251564
+.primevideo.com\tTRUE\t/\tFALSE\t1790306532\tav-timezone\tAsia/Calcutta"""
+
+DEFAULT_SERVICES = [
+    {
+        "id": "hotmail_free",
+        "name": "Hotmail / Outlook Free",
+        "category": "free",
+        "emoji": "📧",
+        "description": "Ücretsiz Hotmail / Outlook Mail:Pass Hesaplar"
+    },
+    {
+        "id": "mc_mail_free",
+        "name": "Minecraft Mail:Pass",
+        "category": "free",
+        "emoji": "⛏️",
+        "description": "Ücretsiz Minecraft Mail:Pass Hesaplar"
+    },
+    {
+        "id": "netflix_free",
+        "name": "Netflix Free",
+        "category": "free",
+        "emoji": "🎬",
+        "description": "Ücretsiz Netflix Hesap Servisi"
+    },
+    {
+        "id": "spotify_free",
+        "name": "Spotify Free",
+        "category": "free",
+        "emoji": "🎧",
+        "description": "Ücretsiz Spotify Hesap Servisi"
+    },
+    {
+        "id": "steam_free",
+        "name": "Steam Oyunlu (Sınırsız Random)",
+        "category": "free",
+        "emoji": "🎮",
+        "description": "Sınırsız Rastgele Oyunlu Steam Hesapları",
+        "is_unlimited": True
+    },
+    {
+        "id": "mailchecker_tool",
+        "name": "MailChecker Tool (Ticket)",
+        "category": "free",
+        "emoji": "🔍",
+        "description": "Özel MailChecker Aracına Erişim (Ticket Açılır)",
+        "requires_ticket": True
+    },
+    {
+        "id": "iptv_free",
+        "name": "IPTV Free (M3U / Xtream)",
+        "category": "free",
+        "emoji": "📺",
+        "description": "Ücretsiz IPTV M3U & Xtream Code Hesapları"
+    },
+    {
+        "id": "exxen_free",
+        "name": "Exxen Free",
+        "category": "free",
+        "emoji": "🎬",
+        "description": "Ücretsiz Exxen Hesap Servisi"
+    },
+    {
+        "id": "tod_tv_free",
+        "name": "TOD TV Free",
+        "category": "free",
+        "emoji": "📺",
+        "description": "Ücretsiz TOD TV Hesap Servisi (5 Adet Sınırlı Stok)",
+        "is_unlimited": False
+    },
+    {
+        "id": "hotmail_vip",
+        "name": "Hotmail / Outlook VIP",
+        "category": "vip",
+        "emoji": "👑",
+        "description": "VIP Özel Temiz Hotmail / Outlook Hesapları"
+    },
+    {
+        "id": "mc_vip",
+        "name": "Minecraft Premium Full Access",
+        "category": "vip",
+        "emoji": "💎",
+        "description": "VIP Özel Full Access Minecraft Hesap",
+        "is_unlimited": True
+    },
+    {
+        "id": "netflix_vip",
+        "name": "Netflix UHD 4K",
+        "category": "vip",
+        "emoji": "📺",
+        "description": "VIP Özel Ultra HD 4K Netflix Hesap"
+    },
+    {
+        "id": "iptv_vip",
+        "name": "IPTV Premium VIP 4K",
+        "category": "vip",
+        "emoji": "📡",
+        "description": "VIP Özel Donmasız 4K IPTV Üyeliği"
+    },
+    {
+        "id": "exxen_vip",
+        "name": "Exxen Premium TV",
+        "category": "vip",
+        "emoji": "🎬",
+        "description": "VIP Özel Exxen Dizi/Film/Spor Üyeliği"
+    },
+    {
+        "id": "tod_tv_vip",
+        "name": "TOD TV Premium VIP 4K (Sınırsız)",
+        "category": "vip",
+        "emoji": "📺",
+        "description": "VIP Özel TOD TV Dizi/Film/Spor Üyeliği (Sınırsız)",
+        "is_unlimited": True
+    },
+    {
+        "id": "tonguc_vip",
+        "name": "Tonguç Akademi VIP (Sınırsız)",
+        "category": "vip",
+        "emoji": "📚",
+        "description": "VIP Özel Tonguç Akademi Hesap (Sınırsız)",
+        "is_unlimited": True
+    },
+    {
+        "id": "prime_video_vip",
+        "name": "Amazon Prime Video Cookie (Sınırsız)",
+        "category": "vip",
+        "emoji": "🎬",
+        "description": "VIP Özel Prime Video Cookie (Cookie Editor İle Giriş)",
+        "is_unlimited": True
+    },
+    {
+        "id": "smm_vip",
+        "name": "Cheapest SMM Panels VIP",
+        "category": "vip",
+        "emoji": "🔑",
+        "description": "VIP Özel CheapestSMMPanels Hesabı",
+        "is_unlimited": False
+    },
+    {
+        "id": "nitro_promo",
+        "name": "Discord Nitro Promo (100 Coin)",
+        "category": "vip",
+        "emoji": "🚀",
+        "description": "100 Coin İle Satın Alınabilir Discord Nitro Promo (Ticket)",
+        "requires_ticket": True
+    },
+    {
+        "id": "gemini_pro",
+        "name": "Google Gemini Pro (50 Coin)",
+        "category": "vip",
+        "emoji": "🤖",
+        "description": "50 Coin İle Sınırsız Alınabilir Google Gemini Pro Hesap",
+        "is_unlimited": True
+    },
+    {
+        "id": "spotify_premium_vip",
+        "name": "Spotify Premium Bireysel (100 Coin)",
+        "category": "vip",
+        "emoji": "🎧",
+        "description": "100 Coin İle Satın Alınabilir Spotify Premium Bireysel (Ticket)",
+        "requires_ticket": True
+    }
+]
+
+def _read_json(filepath, default):
+    if not os.path.exists(filepath):
+        _write_json(filepath, default)
+        return default
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"[DB HATA] JSON Okuma Hatası ({filepath}): {e}")
+        return default
+
+def _write_json(filepath, data):
+    try:
+        temp_file = filepath + ".tmp"
+        with open(temp_file, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        os.replace(temp_file, filepath)
+    except Exception as e:
+        print(f"[DB HATA] JSON Yazma Hatası ({filepath}): {e}")
+
+class DatabaseManager:
+    def __init__(self):
+        self._init_files()
+
+    def _init_files(self):
+        with _lock:
+            if not os.path.exists(CONFIG_FILE):
+                _write_json(CONFIG_FILE, DEFAULT_CONFIG)
+            if not os.path.exists(SERVICES_FILE):
+                _write_json(SERVICES_FILE, DEFAULT_SERVICES)
+            if not os.path.exists(STOCKS_FILE):
+                stocks = {s["id"]: [] for s in DEFAULT_SERVICES}
+                stocks["gemini_pro"] = ["efe674841@gmail.com:Me261211@"]
+                stocks["mc_vip"] = ["retosatis35@outlook.com:Reto2001@"]
+                stocks["tonguc_vip"] = ["arslandevrim2@gmail.com:gmailfail098"]
+                stocks["tod_tv_free"] = ["emirhankorkut@yahoo.com.tr:2003Emirhan"] * 5
+                stocks["tod_tv_vip"] = ["emirhankorkut@yahoo.com.tr:2003Emirhan"]
+                stocks["prime_video_vip"] = [PRIME_COOKIE_TEXT]
+                stocks["smm_vip"] = ["https://cheapestsmmpanels.com:Anonhax:20112008@"] * 10
+                _write_json(STOCKS_FILE, stocks)
+            if not os.path.exists(USERS_FILE):
+                _write_json(USERS_FILE, {})
+            if not os.path.exists(KEYS_FILE):
+                _write_json(KEYS_FILE, {})
+
+            services = _read_json(SERVICES_FILE, DEFAULT_SERVICES)
+            existing_ids = [s["id"] for s in services]
+            for default_s in DEFAULT_SERVICES:
+                if default_s["id"] not in existing_ids:
+                    services.append(default_s)
+            _write_json(SERVICES_FILE, services)
+
+            stocks = _read_json(STOCKS_FILE, {})
+            for default_s in DEFAULT_SERVICES:
+                if default_s["id"] not in stocks:
+                    stocks[default_s["id"]] = []
+            if "smm_vip" not in stocks or not stocks["smm_vip"]:
+                stocks["smm_vip"] = ["https://cheapestsmmpanels.com:Anonhax:20112008@"] * 10
+            _write_json(STOCKS_FILE, stocks)
+
+    # CONFIG MANAGEMENT
+    def get_config(self):
+        with _lock:
+            cfg = _read_json(CONFIG_FILE, DEFAULT_CONFIG)
+            for k, v in DEFAULT_CONFIG.items():
+                if k not in cfg:
+                    cfg[k] = v
+            return cfg
+
+    def update_config(self, key, value):
+        with _lock:
+            cfg = _read_json(CONFIG_FILE, DEFAULT_CONFIG)
+            cfg[key] = value
+            _write_json(CONFIG_FILE, cfg)
+            return cfg
+
+    # SERVICES MANAGEMENT
+    def get_services(self, category=None):
+        with _lock:
+            services = _read_json(SERVICES_FILE, DEFAULT_SERVICES)
+            stocks = _read_json(STOCKS_FILE, {})
+            changed = False
+            for s in services:
+                s_id = s.get("id")
+                if s_id and s_id not in stocks:
+                    stocks[s_id] = []
+                    changed = True
+            if changed:
+                _write_json(STOCKS_FILE, stocks)
+
+            if category:
+                return [s for s in services if s.get("category") == category]
+            return services
+
+    def get_service(self, service_id):
+        with _lock:
+            services = _read_json(SERVICES_FILE, DEFAULT_SERVICES)
+            for s in services:
+                if s["id"] == service_id:
+                    return s
+            return None
+
+    def add_service(self, service_id, name, category, emoji="🎁", description="", is_unlimited=False, requires_ticket=False):
+        with _lock:
+            services = _read_json(SERVICES_FILE, DEFAULT_SERVICES)
+            for s in services:
+                if s["id"] == service_id:
+                    s["name"] = name
+                    s["category"] = category
+                    s["emoji"] = emoji
+                    s["description"] = description
+                    s["is_unlimited"] = is_unlimited
+                    s["requires_ticket"] = requires_ticket
+                    _write_json(SERVICES_FILE, services)
+                    return False
+            
+            services.append({
+                "id": service_id,
+                "name": name,
+                "category": category,
+                "emoji": emoji,
+                "description": description,
+                "is_unlimited": is_unlimited,
+                "requires_ticket": requires_ticket
+            })
+            _write_json(SERVICES_FILE, services)
+
+            stocks = _read_json(STOCKS_FILE, {})
+            if service_id not in stocks:
+                stocks[service_id] = []
+                _write_json(STOCKS_FILE, stocks)
+            return True
+
+    def delete_service(self, service_id):
+        with _lock:
+            services = _read_json(SERVICES_FILE, DEFAULT_SERVICES)
+            services = [s for s in services if s["id"] != service_id]
+            _write_json(SERVICES_FILE, services)
+
+            stocks = _read_json(STOCKS_FILE, {})
+            if service_id in stocks:
+                del stocks[service_id]
+                _write_json(STOCKS_FILE, stocks)
+            return True
+
+    # STOCKS MANAGEMENT
+    def get_all_stocks(self):
+        with _lock:
+            return _read_json(STOCKS_FILE, {})
+
+    def get_stock_count(self, service_id):
+        with _lock:
+            stocks = _read_json(STOCKS_FILE, {})
+            return len(stocks.get(service_id, []))
+
+    def add_stock(self, service_id, items):
+        with _lock:
+            stocks = _read_json(STOCKS_FILE, {})
+            if service_id not in stocks:
+                stocks[service_id] = []
+            
+            clean_items = [item.strip() for item in items if item and item.strip()]
+            stocks[service_id].extend(clean_items)
+            _write_json(STOCKS_FILE, stocks)
+            return len(clean_items)
+
+    def clear_stock(self, service_id):
+        with _lock:
+            stocks = _read_json(STOCKS_FILE, {})
+            removed_count = len(stocks.get(service_id, []))
+            stocks[service_id] = []
+            _write_json(STOCKS_FILE, stocks)
+            return removed_count
+
+    def get_stock_account(self, service_id):
+        with _lock:
+            stocks = _read_json(STOCKS_FILE, {})
+            services = _read_json(SERVICES_FILE, DEFAULT_SERVICES)
+            service = None
+            for s in services:
+                if s["id"] == service_id:
+                    service = s
+                    break
+
+            if service_id in ["mailchecker_tool", "spotify_premium_vip"] or (service and service.get("requires_ticket")):
+                return "TICKET_CREATED"
+
+            if service_id not in stocks or len(stocks[service_id]) == 0:
+                return None
+
+            is_unlimited = (service_id in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip"]) or (service and service.get("is_unlimited", False))
+
+            if is_unlimited:
+                return random.choice(stocks[service_id])
+            else:
+                account = stocks[service_id].pop(0)
+                _write_json(STOCKS_FILE, stocks)
+                return account
+
+    # USER & VIP & INVITES & COIN & MESSAGE ACTIVITY MANAGEMENT
+    def get_user_data(self, user_id):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            if user_str not in users:
+                users[user_str] = {
+                    "is_vip": False,
+                    "vip_expires": 0,
+                    "claims": [],
+                    "total_claims": 0,
+                    "last_claim_timestamp": 0,
+                    "daily_claims": [],
+                    "last_wheel_spin": 0,
+                    "invites": 0,
+                    "coins": 0,
+                    "message_count": 0,
+                    "invited_by": None
+                }
+            return users[user_str]
+
+    def record_user_message(self, user_id):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            if user_str not in users:
+                users[user_str] = {
+                    "is_vip": False,
+                    "vip_expires": 0,
+                    "claims": [],
+                    "total_claims": 0,
+                    "last_claim_timestamp": 0,
+                    "daily_claims": [],
+                    "last_wheel_spin": 0,
+                    "invites": 0,
+                    "coins": 0,
+                    "message_count": 1,
+                    "invited_by": None
+                }
+            else:
+                users[user_str]["message_count"] = users[user_str].get("message_count", 0) + 1
+            _write_json(USERS_FILE, users)
+
+    def has_user_chatted(self, user_id) -> bool:
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            u = users.get(user_str, {})
+            return u.get("message_count", 0) > 0
+
+    def add_user_coins(self, user_id, amount: int):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            u = users.get(user_str, {
+                "is_vip": False,
+                "vip_expires": 0,
+                "claims": [],
+                "total_claims": 0,
+                "last_claim_timestamp": 0,
+                "daily_claims": [],
+                "last_wheel_spin": 0,
+                "invites": 0,
+                "coins": 0,
+                "message_count": 0
+            })
+            u["coins"] = u.get("coins", 0) + amount
+            users[user_str] = u
+            _write_json(USERS_FILE, users)
+            return u["coins"]
+
+    def remove_user_coins(self, user_id, amount: int) -> bool:
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            u = users.get(user_str, {})
+            current = u.get("coins", 0)
+            if current < amount:
+                return False
+            u["coins"] = current - amount
+            users[user_str] = u
+            _write_json(USERS_FILE, users)
+            return True
+
+    def add_user_invite(self, inviter_id):
+        inviter_str = str(inviter_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            if inviter_str not in users:
+                users[inviter_str] = {
+                    "is_vip": False,
+                    "vip_expires": 0,
+                    "claims": [],
+                    "total_claims": 0,
+                    "last_claim_timestamp": 0,
+                    "daily_claims": [],
+                    "last_wheel_spin": 0,
+                    "invites": 1,
+                    "coins": 0,
+                    "message_count": 0,
+                    "invited_by": None
+                }
+            else:
+                users[inviter_str]["invites"] = users[inviter_str].get("invites", 0) + 1
+            
+            cfg = self.get_config()
+            target_invites = cfg.get("invites_for_vip", 5)
+            if users[inviter_str]["invites"] >= target_invites:
+                users[inviter_str]["is_vip"] = True
+                users[inviter_str]["vip_expires"] = time.time() + (24 * 3600)
+
+            _write_json(USERS_FILE, users)
+            return users[inviter_str]["invites"]
+
+    def set_user_vip(self, user_id, is_vip: bool, duration_hours: int = 0):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            u = users.get(user_str, {
+                "is_vip": False,
+                "vip_expires": 0,
+                "claims": [],
+                "total_claims": 0,
+                "last_claim_timestamp": 0,
+                "daily_claims": [],
+                "last_wheel_spin": 0,
+                "invites": 0,
+                "coins": 0,
+                "message_count": 0
+            })
+            u["is_vip"] = is_vip
+            if is_vip and duration_hours > 0:
+                u["vip_expires"] = time.time() + (duration_hours * 3600)
+            else:
+                u["vip_expires"] = 0
+            users[user_str] = u
+            _write_json(USERS_FILE, users)
+
+    def is_user_vip_db(self, user_id):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            u = users.get(user_str, {})
+            if not u.get("is_vip", False):
+                return False
+            expires = u.get("vip_expires", 0)
+            if expires > 0 and time.time() > expires:
+                u["is_vip"] = False
+                u["vip_expires"] = 0
+                _write_json(USERS_FILE, users)
+                return False
+            return True
+
+    def check_user_cooldown(self, user_id, is_vip=False, is_booster=False):
+        user_str = str(user_id)
+        config = self.get_config()
+        cooldown_hours = config.get("cooldown_hours", 24)
+        
+        if is_booster:
+            daily_limit = config.get("booster_daily_limit", 3)
+        elif is_vip:
+            daily_limit = config.get("vip_daily_limit", 2)
+        else:
+            daily_limit = config.get("free_daily_limit", 1)
+
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            u = users.get(user_str, {
+                "is_vip": False,
+                "claims": [],
+                "total_claims": 0,
+                "last_claim_timestamp": 0,
+                "daily_claims": []
+            })
+
+            now = time.time()
+            cooldown_seconds = cooldown_hours * 3600
+
+            recent_claims = [t for t in u.get("daily_claims", []) if now - t < cooldown_seconds]
+            claims_count = len(recent_claims)
+
+            if claims_count >= daily_limit:
+                oldest_recent_claim = min(recent_claims)
+                time_passed = now - oldest_recent_claim
+                remaining_sec = max(0, cooldown_seconds - time_passed)
+                return False, remaining_sec, claims_count, daily_limit
+
+            return True, 0, claims_count, daily_limit
+
+    def record_claim(self, user_id, service_id, account_data, is_vip=False):
+        user_str = str(user_id)
+        config = self.get_config()
+        cooldown_seconds = config.get("cooldown_hours", 24) * 3600
+
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            if user_str not in users:
+                users[user_str] = {
+                    "is_vip": False,
+                    "claims": [],
+                    "total_claims": 0,
+                    "last_claim_timestamp": 0,
+                    "daily_claims": []
+                }
+            
+            now = time.time()
+            u = users[user_str]
+            
+            u["daily_claims"] = [t for t in u.get("daily_claims", []) if now - t < cooldown_seconds]
+            u["daily_claims"].append(now)
+            u["last_claim_timestamp"] = now
+            u["total_claims"] = u.get("total_claims", 0) + 1
+            
+            u.setdefault("claims", []).append({
+                "service_id": service_id,
+                "account": account_data,
+                "timestamp": now,
+                "is_vip": is_vip
+            })
+
+            _write_json(USERS_FILE, users)
+
+    def reset_user_cooldown(self, user_id):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            if user_str in users:
+                users[user_str]["daily_claims"] = []
+                users[user_str]["last_claim_timestamp"] = 0
+                _write_json(USERS_FILE, users)
+                return True
+            return False
+
+    # DAILY WHEEL SPIN
+    def check_user_wheel_spin(self, user_id):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            u = users.get(user_str, {})
+            last_spin = u.get("last_wheel_spin", 0)
+            now = time.time()
+            cooldown_sec = 24 * 3600
+            if now - last_spin < cooldown_sec:
+                return False, cooldown_sec - (now - last_spin)
+            return True, 0
+
+    def record_wheel_spin(self, user_id):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            if user_str not in users:
+                users[user_str] = {"last_wheel_spin": time.time()}
+            else:
+                users[user_str]["last_wheel_spin"] = time.time()
+            _write_json(USERS_FILE, users)
+
+    # PROMO KEYS / VOUCHER SYSTEM
+    def create_promo_keys(self, reward_type: str, reward_value: str, count: int = 1):
+        with _lock:
+            keys = _read_json(KEYS_FILE, {})
+            created = []
+            for _ in range(count):
+                random_hex = os.urandom(4).hex().upper()
+                key_code = f"LEAK-{random_hex[:4]}-{random_hex[4:]}"
+                keys[key_code] = {
+                    "reward_type": reward_type, # 'vip', 'claim', 'steam', 'coin'
+                    "reward_value": reward_value,
+                    "used": False,
+                    "used_by": None,
+                    "used_at": 0
+                }
+                created.append(key_code)
+            _write_json(KEYS_FILE, keys)
+            return created
+
+    def redeem_promo_key(self, user_id, key_code: str):
+        key_code = key_code.strip().upper()
+        with _lock:
+            keys = _read_json(KEYS_FILE, {})
+            if key_code not in keys:
+                return False, "❌ Geçersiz veya bulunamayan promo kodu!"
+            key_data = keys[key_code]
+            if key_data.get("used"):
+                return False, "❌ Bu promo kodu daha önce kullanılmış!"
+
+            reward_type = key_data.get("reward_type")
+            
+            if reward_type == "vip":
+                raw_val = str(key_data.get("reward_value", 24)).lower().strip()
+                try:
+                    if "gün" in raw_val:
+                        num = int(raw_val.replace("gün", "").strip())
+                        hours = num * 24
+                    elif "saat" in raw_val:
+                        hours = int(raw_val.replace("saat", "").strip())
+                    else:
+                        hours = int(raw_val)
+                except Exception:
+                    hours = 24
+
+                self.set_user_vip(user_id, True, duration_hours=hours)
+                msg = f"⭐ Tebrikler! **{hours} Saatlik VIP Üyelik** kazandınız!"
+            elif reward_type == "coin":
+                amount = int(key_data.get("reward_value", 100))
+                total = self.add_user_coins(user_id, amount)
+                msg = f"🪙 Tebrikler! **{amount} Coin** kazandınız! (Güncel Bakiyeniz: {total} Coin)"
+            elif reward_type == "claim":
+                self.reset_user_cooldown(user_id)
+                msg = "🎁 Tebrikler! **1 Ekstra Stok Hakkı** kazandınız (Bekleme süreniz sıfırlandı)!"
+            elif reward_type == "steam":
+                acc = self.get_stock_account("steam_free")
+                if acc:
+                    msg = f"🎮 Tebrikler! **Steam Oyun Hesabı** kazandınız:\n```\n{acc}\n```"
+                else:
+                    msg = "🎮 Tebrikler! Steam stokları yenilendiğinde hesabınız teslim edilecektir."
+            else:
+                msg = "✅ Kod başarıyla kullanıldı!"
+
+            key_data["used"] = True
+            key_data["used_by"] = str(user_id)
+            key_data["used_at"] = time.time()
+            _write_json(KEYS_FILE, keys)
+            return True, msg
+
+    # LEADERBOARD
+    def get_leaderboard(self, limit=10):
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            user_list = []
+            for u_id, u_data in users.items():
+                user_list.append({
+                    "user_id": u_id,
+                    "claims": u_data.get("total_claims", 0),
+                    "invites": u_data.get("invites", 0),
+                    "coins": u_data.get("coins", 0),
+                    "is_vip": u_data.get("is_vip", False)
+                })
+            user_list.sort(key=lambda x: x["claims"], reverse=True)
+            return user_list[:limit]
+
+    # ADMIN STATS REPORT
+    def get_admin_stats(self):
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            services = _read_json(SERVICES_FILE, DEFAULT_SERVICES)
+            stocks = _read_json(STOCKS_FILE, {})
+
+            total_services = len(services)
+            total_current_stock = sum(len(stk) for stk in stocks.values())
+            
+            total_claims_all_time = 0
+            total_coins_in_circulation = 0
+            total_registered_users = len(users)
+            total_vip_users = 0
+            total_invites = 0
+            chatted_users_count = 0
+
+            service_claims_count = {}
+
+            for u_id, u_data in users.items():
+                t_claims = u_data.get("total_claims", 0)
+                total_claims_all_time += t_claims
+                total_coins_in_circulation += u_data.get("coins", 0)
+                if u_data.get("is_vip", False):
+                    total_vip_users += 1
+                total_invites += u_data.get("invites", 0)
+                if u_data.get("message_count", 0) > 0:
+                    chatted_users_count += 1
+
+                for claim in u_data.get("claims", []):
+                    s_id = claim.get("service_id")
+                    if s_id:
+                        service_claims_count[s_id] = service_claims_count.get(s_id, 0) + 1
+
+            most_claimed_service = "Henüz Yok"
+            if service_claims_count:
+                top_s_id = max(service_claims_count, key=service_claims_count.get)
+                top_s = self.get_service(top_s_id)
+                top_name = top_s["name"] if top_s else top_s_id
+                most_claimed_service = f"{top_name} ({service_claims_count[top_s_id]} kez)"
+
+            return {
+                "total_services": total_services,
+                "total_current_stock": total_current_stock,
+                "total_claims_all_time": total_claims_all_time,
+                "total_coins_in_circulation": total_coins_in_circulation,
+                "total_registered_users": total_registered_users,
+                "total_vip_users": total_vip_users,
+                "total_invites": total_invites,
+                "chatted_users_count": chatted_users_count,
+                "most_claimed_service": most_claimed_service
+            }
+
+db = DatabaseManager()
+db.update_config("vip_daily_limit", 2)

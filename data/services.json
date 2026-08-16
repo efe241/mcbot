@@ -1,0 +1,159 @@
+[
+  {
+    "id": "hotmail_free",
+    "name": "Hotmail / Outlook Free",
+    "category": "free",
+    "emoji": "📧",
+    "description": "Ücretsiz Hotmail / Outlook Mail:Pass Hesaplar"
+  },
+  {
+    "id": "mc_mail_free",
+    "name": "Minecraft Mail:Pass",
+    "category": "free",
+    "emoji": "⛏️",
+    "description": "Ücretsiz Minecraft Mail:Pass Hesaplar"
+  },
+  {
+    "id": "netflix_free",
+    "name": "Netflix Free",
+    "category": "free",
+    "emoji": "🎬",
+    "description": "Ücretsiz Netflix Hesap Servisi"
+  },
+  {
+    "id": "spotify_free",
+    "name": "Spotify Free",
+    "category": "free",
+    "emoji": "🎧",
+    "description": "Ücretsiz Spotify Hesap Servisi"
+  },
+  {
+    "id": "steam_free",
+    "name": "Steam Oyunlu (Sınırsız Random)",
+    "category": "free",
+    "emoji": "🎮",
+    "description": "Sınırsız Rastgele Oyunlu Steam Hesapları",
+    "is_unlimited": true
+  },
+  {
+    "id": "mailchecker_tool",
+    "name": "MailChecker Tool (Ticket)",
+    "category": "free",
+    "emoji": "🔍",
+    "description": "Özel MailChecker Aracına Erişim (Ticket Açılır)",
+    "requires_ticket": true
+  },
+  {
+    "id": "iptv_free",
+    "name": "IPTV Free (M3U / Xtream)",
+    "category": "free",
+    "emoji": "📺",
+    "description": "Ücretsiz IPTV M3U & Xtream Code Hesapları"
+  },
+  {
+    "id": "hotmail_vip",
+    "name": "Hotmail / Outlook VIP",
+    "category": "vip",
+    "emoji": "👑",
+    "description": "VIP Özel Temiz Hotmail / Outlook Hesapları"
+  },
+  {
+    "id": "mc_vip",
+    "name": "Minecraft Premium Full Access",
+    "category": "vip",
+    "emoji": "💎",
+    "description": "VIP Özel Full Access Minecraft Hesap",
+    "is_unlimited": true
+  },
+  {
+    "id": "netflix_vip",
+    "name": "Netflix UHD 4K",
+    "category": "vip",
+    "emoji": "📺",
+    "description": "VIP Özel Ultra HD 4K Netflix Hesap"
+  },
+  {
+    "id": "iptv_vip",
+    "name": "IPTV Premium VIP 4K",
+    "category": "vip",
+    "emoji": "📡",
+    "description": "VIP Özel Donmasız 4K IPTV Üyeliği"
+  },
+  {
+    "id": "nitro_promo",
+    "name": "Discord Nitro Promo (100 Coin)",
+    "category": "vip",
+    "emoji": "🚀",
+    "description": "100 Coin İle Satın Alınabilir Discord Nitro Promo Linki"
+  },
+  {
+    "id": "gemini_pro",
+    "name": "Google Gemini Pro (50 Coin)",
+    "category": "vip",
+    "emoji": "🤖",
+    "description": "50 Coin İle Sınırsız Alınabilir Google Gemini Pro Hesap",
+    "is_unlimited": true
+  },
+  {
+    "id": "spotify_premium_vip",
+    "name": "Spotify Premium Bireysel (100 Coin)",
+    "category": "vip",
+    "emoji": "🎧",
+    "description": "100 Coin İle Satın Alınabilir Spotify Premium Bireysel (Ticket)",
+    "requires_ticket": true
+  },
+  {
+    "id": "exxen_free",
+    "name": "Exxen Free",
+    "category": "free",
+    "emoji": "🎬",
+    "description": "Ücretsiz Exxen Hesap Servisi"
+  },
+  {
+    "id": "exxen_vip",
+    "name": "Exxen Premium TV",
+    "category": "vip",
+    "emoji": "🎬",
+    "description": "VIP Özel Exxen Dizi/Film/Spor Üyeliği"
+  },
+  {
+    "id": "tonguc_vip",
+    "name": "Tonguç Akademi VIP (Sınırsız)",
+    "category": "vip",
+    "emoji": "📚",
+    "description": "VIP Özel Tonguç Akademi Hesap (Sınırsız)",
+    "is_unlimited": true
+  },
+  {
+    "id": "tod_tv_free",
+    "name": "TOD TV Free",
+    "category": "free",
+    "emoji": "📺",
+    "description": "Ücretsiz TOD TV Hesap Servisi (5 Adet Sınırlı Stok)",
+    "is_unlimited": false
+  },
+  {
+    "id": "tod_tv_vip",
+    "name": "TOD TV Premium VIP 4K (Sınırsız)",
+    "category": "vip",
+    "emoji": "📺",
+    "description": "VIP Özel TOD TV Dizi/Film/Spor Üyeliği (Sınırsız)",
+    "is_unlimited": true
+  },
+  {
+    "id": "prime_video_vip",
+    "name": "Amazon Prime Video Cookie (Sınırsız)",
+    "category": "vip",
+    "emoji": "🎬",
+    "description": "VIP Özel Prime Video Cookie (Cookie Editor İle Giriş)",
+    "is_unlimited": true
+  },
+  {
+    "id": "smm_vip",
+    "name": "Cheapest SMM Panels VIP",
+    "category": "vip",
+    "emoji": "🔑",
+    "description": "VIP Özel CheapestSMMPanels Hesabı",
+    "is_unlimited": false
+  }
+]

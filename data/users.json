@@ -1,0 +1,66 @@
+{
+  "1114441502039478312": {
+    "is_vip": false,
+    "claims": [
+      {
+        "service_id": "steam_free",
+        "account": "STEAM-AAAAA-BBBBB-CCCCC",
+        "timestamp": 1786893778.5427532,
+        "is_vip": true
+      }
+    ],
+    "total_claims": 1,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 1786894689.4327571,
+    "message_count": 31
+  },
+  "1505283977630580868": {
+    "is_vip": true,
+    "vip_expires": 1786988836.6389804,
+    "claims": [
+      {
+        "service_id": "nitro_promo",
+        "account": "TICKET: #📩-nitro-promo-1foxybaba",
+        "timestamp": 1786901962.000399,
+        "is_vip": true
+      }
+    ],
+    "total_claims": 1,
+    "last_claim_timestamp": 1786901962.000399,
+    "daily_claims": [
+      1786901962.000399
+    ],
+    "last_wheel_spin": 1786901940.358205,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 25,
+    "invited_by": null
+  },
+  "1483764534643785780": {
+    "is_vip": false,
+    "vip_expires": 0,
+    "claims": [],
+    "total_claims": 0,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 0,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 3,
+    "invited_by": null
+  },
+  "1198162072601636888": {
+    "is_vip": false,
+    "vip_expires": 0,
+    "claims": [],
+    "total_claims": 0,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 0,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 17,
+    "invited_by": null
+  }
+}
