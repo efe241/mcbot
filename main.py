@@ -8,6 +8,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 from dotenv import load_dotenv
+from aiohttp import web
 
 # Fix Windows console UTF-8 printing
 if hasattr(sys.stdout, 'reconfigure'):
@@ -34,6 +35,29 @@ BOT_START_TIME = time.time()
 
 # Global Invites Cache
 invites_cache = {}
+
+# --- KEEP-ALIVE WEB SERVER FOR RENDER & BETTERSTACK ---
+async def handle_ping(request):
+    return web.Response(
+        text="<html><body><h1>🤖 LeaksTr Discord Bot 7/24 Aktif ve Çalışıyor!</h1><p>BetterStack / Uptime Robot Ping OK ✅</p></body></html>",
+        content_type="text/html"
+    )
+
+async def start_web_server():
+    try:
+        app = web.Application()
+        app.router.add_get("/", handle_ping)
+        app.router.add_get("/health", handle_ping)
+        app.router.add_get("/ping", handle_ping)
+
+        port = int(os.getenv("PORT", 10000))
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+        print(f"🌐 Keep-Alive Web Sunucusu 0.0.0.0:{port} Üzerinde Başlatıldı! BetterStack İle Uyumlu.")
+    except Exception as e:
+        print(f"⚠️ Web Sunucusu Başlatma Hatası: {e}")
 
 # --- HELPER FUNCTIONS ---
 def is_booster_user(member: discord.Member) -> bool:
@@ -1418,6 +1442,8 @@ async def perform_sync_cleanly(guild_obj=None):
 @bot.event
 async def on_ready():
     print(f"Bot Giriş Yaptı: {bot.user.name} ({bot.user.id})")
+    asyncio.create_task(start_web_server())
+
     bot.add_view(MainPanelView())
     bot.add_view(CloseTicketView())
 
