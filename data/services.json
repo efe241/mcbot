@@ -155,5 +155,13 @@
     "emoji": "🔑",
     "description": "VIP Özel CheapestSMMPanels Hesabı",
     "is_unlimited": false
+  },
+  {
+    "id": "twitch_vip",
+    "name": "Twitch Cookie VIP (Sınırsız)",
+    "category": "vip",
+    "emoji": "🎮",
+    "description": "VIP Özel Twitch Cookie Hesabı (Sınırsız)",
+    "is_unlimited": true
   }
 ]
