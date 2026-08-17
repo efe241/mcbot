@@ -1269,6 +1269,30 @@ class MainPanelView(discord.ui.View):
         view = AdminPanelView()
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
+    # BACKWARD COMPATIBILITY FALLBACK FOR OLD PANEL MESSAGES
+    @discord.ui.button(
+        label="Coin Market",
+        style=discord.ButtonStyle.secondary,
+        emoji="🪙",
+        custom_id="btn_coin_market"
+    )
+    async def legacy_coin_market_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+        embed = discord.Embed(
+            title="🪙 Coin Sistemi Güncellendi",
+            description=(
+                "Coin sistemi kaldırılmış olup servislerimiz doğrudan **⭐ VIP** ve **🎁 FREE** "
+                "kategorilerine eklenmiştir!\n\n"
+                "Lütfen **`🎁 FREE Servisler`** veya **`⭐ VIP Servisler`** butonlarını kullanarak "
+                "hesaplarınızı doğrudan teslim alınız."
+            ),
+            color=discord.Color.gold()
+        )
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
 
 async def perform_sync_cleanly(guild_obj=None):
     raw_commands = list(bot.tree.get_commands())
