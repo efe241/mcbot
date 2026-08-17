@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import time
 import asyncio
 import random
@@ -1672,109 +1673,34 @@ async def scheduled_hitabe_task():
         print(f"⚠️ [HİTABE HATA]: {e}")
 
 
-# --- AUTOMATIC TRIVIA & QUIZ CHAT GAME SYSTEM ---
-TRIVIA_QUESTIONS = [
-    {
-        "question": "Türkiye Cumhuriyeti'nin kurucusu ve ilk Cumhurbaşkanı kimdir?",
-        "answers": ["atatürk", "mustafa kemal", "mustafa kemal atatürk", "gazi mustafa kemal", "gazi mustafa kemal atatürk"],
-        "category": "Tarih 📜"
-    },
-    {
-        "question": "Türkiye'nin başkenti neresidir?",
-        "answers": ["ankara"],
-        "category": "Coğrafya 🌍"
-    },
-    {
-        "question": "Minecraft'ta obsidyen kazmak için hangi kazma türü gereklidir?",
-        "answers": ["elmas", "elmas kazma", "diamond", "diamond pickaxe", "netherite", "netherit kazma"],
-        "category": "Oyun 🎮"
-    },
-    {
-        "question": "Güneş sistemimizdeki en büyük gezegen hangisidir?",
-        "answers": ["jüpiter", "jupiter"],
-        "category": "Bilim & Uzay 🚀"
-    },
-    {
-        "question": "Steam platformunun ve Half-Life serisinin geliştiricisi olan şirket hangisidir?",
-        "answers": ["valve", "valve corporation"],
-        "category": "Oyun & Teknoloji 💻"
-    },
-    {
-        "question": "Matematik Sorusu: 15 x 6 işleminin sonucu kaçtır?",
-        "answers": ["90", "doksan"],
-        "category": "Matematik 🧠"
-    },
-    {
-        "question": "İstanbul hangi yılda fethedilmiştir?",
-        "answers": ["1453", "bin dört yüz elli üç"],
-        "category": "Tarih 📜"
-    },
-    {
-        "question": "Netflix ilk olarak hangi ülkede kurulmuştur?",
-        "answers": ["amerika", "abd", "usa", "amerika birleşik devletleri"],
-        "category": "Genel Kültür 🎬"
-    },
-    {
-        "question": "GTA 5'teki 3 ana karakterden birinin adını yazın? (Franklin, Michael veya ...)",
-        "answers": ["trevor", "michael", "franklin", "trevor philips", "michael de santa", "franklin clinton"],
-        "category": "Oyun 🎮"
-    },
-    {
-        "question": "Dünyanın uydusunun adı nedir?",
-        "answers": ["ay", "the moon", "moon"],
-        "category": "Uzay 🌙"
-    },
-    {
-        "question": "İlk Türk astronotumuzun adı nedir?",
-        "answers": ["alper gezeravcı", "alper gezeravci", "alper"],
-        "category": "Bilim & Uzay 🚀"
-    },
-    {
-        "question": "CS:GO / CS2 oyununda C4 bombası kurulduktan sonra kaç saniye sonra patlar?",
-        "answers": ["40", "40 saniye", "40 sn", "kırk"],
-        "category": "Oyun 🎮"
-    },
-    {
-        "question": "Matematik Sorusu: 128 / 4 işleminin sonucu kaçtır?",
-        "answers": ["32", "otuz iki"],
-        "category": "Matematik 🧠"
-    },
-    {
-        "question": "Mona Lisa tablosunu yapan ünlü İtalyan ressam kimdir?",
-        "answers": ["leonardo da vinci", "da vinci", "leonardo"],
-        "category": "Sanat & Kültür 🎨"
-    },
-    {
-        "question": "Dünyanın en yüksek dağı hangisidir?",
-        "answers": ["everest", "everest dağı", "mount everest"],
-        "category": "Coğrafya 🌍"
-    },
-    {
-        "question": "Hızlı Yazma Sorusu: Şu kelimeyi harfi harfine ilk yazan kazanır: `LeaksTr2026`",
-        "answers": ["leakstr2026"],
-        "category": "Hızlı Refleks ⚡"
-    },
-    {
-        "question": "Hızlı Yazma Sorusu: Şu cümleyi ilk yazan kazanır: `Ne Mutlu Türküm Diyene`",
-        "answers": ["ne mutlu türküm diyene", "ne mutlu turkum diyene", "ne mutlu türk'üm diyene"],
-        "category": "Hızlı Refleks ⚡"
-    },
-    {
-        "question": "Futbolda bir takım sahaya kaç oyuncuyla çıkar?",
-        "answers": ["11", "on bir"],
-        "category": "Spor ⚽"
-    },
-    {
-        "question": "Periyodik tabloda 'Au' sembolü hangi elementi temsil eder?",
-        "answers": ["altın", "altin", "gold"],
-        "category": "Kimya 🧪"
-    },
-    {
-        "question": "GTA San Andreas oyununun ana karakterinin adı nedir?",
-        "answers": ["cj", "carl johnson", "carl"],
-        "category": "Oyun 🎮"
-    }
-]
+# --- AUTOMATIC TRIVIA & QUIZ CHAT GAME SYSTEM (100+ QUESTIONS) ---
+TRIVIA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "trivia.json")
+
+def load_trivia_questions():
+    if os.path.exists(TRIVIA_FILE):
+        try:
+            with open(TRIVIA_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if data and isinstance(data, list):
+                    return data
+        except Exception as e:
+            print(f"⚠️ [TRIVIA DB HATA]: {e}")
+    return [
+        {
+            "id": 1,
+            "question": "Türkiye Cumhuriyeti'nin kurucusu ve ilk Cumhurbaşkanı kimdir?",
+            "answers": ["atatürk", "mustafa kemal", "mustafa kemal atatürk", "gazi mustafa kemal", "gazi mustafa kemal atatürk"],
+            "category": "Tarih 📜"
+        },
+        {
+            "id": 2,
+            "question": "Türkiye'nin başkenti neresidir?",
+            "answers": ["ankara"],
+            "category": "Coğrafya 🌍"
+        }
+    ]
+
+TRIVIA_QUESTIONS = load_trivia_questions()
 
 active_trivia = {
     "question_data": None,

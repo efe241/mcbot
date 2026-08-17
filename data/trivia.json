@@ -1,0 +1,928 @@
+[
+  {
+    "id": 1,
+    "category": "Tarih 📜",
+    "question": "Türkiye Cumhuriyeti'nin kurucusu ve ilk Cumhurbaşkanı kimdir?",
+    "answers": [
+      "atatürk",
+      "mustafa kemal",
+      "mustafa kemal atatürk",
+      "gazi mustafa kemal",
+      "gazi mustafa kemal atatürk"
+    ]
+  },
+  {
+    "id": 2,
+    "category": "Tarih 📜",
+    "question": "Türkiye Cumhuriyeti hangi yılda ilan edilmiştir?",
+    "answers": [
+      "1923",
+      "bin dokuz yüz yirmi üç"
+    ]
+  },
+  {
+    "id": 3,
+    "category": "Tarih 📜",
+    "question": "İstanbul hangi padişah döneminde fethedilmiştir?",
+    "answers": [
+      "fatih sultan mehmet",
+      "fatih",
+      "ikinci mehmet",
+      "2. mehmet",
+      "fatih sultan mehmed"
+    ]
+  },
+  {
+    "id": 4,
+    "category": "Tarih 📜",
+    "question": "İstanbul'un fethi hangi yılda gerçekleşmiştir?",
+    "answers": [
+      "1453",
+      "bin dört yüz elli üç"
+    ]
+  },
+  {
+    "id": 5,
+    "category": "Tarih 📜",
+    "question": "Mustafa Kemal Atatürk hangi şehirde doğmuştur?",
+    "answers": [
+      "selanik",
+      "selânik"
+    ]
+  },
+  {
+    "id": 6,
+    "category": "Tarih 📜",
+    "question": "Kurtuluş Savaşı'nı başlatan 19 Mayıs 1919'da Atatürk hangi şehre ayak basmıştır?",
+    "answers": [
+      "samsun"
+    ]
+  },
+  {
+    "id": 7,
+    "category": "Tarih 📜",
+    "question": "Çanakkale Deniz Zaferi hangi tarihte (gün ve ay) kutlanır?",
+    "answers": [
+      "18 mart",
+      "on sekiz mart"
+    ]
+  },
+  {
+    "id": 8,
+    "category": "Tarih 📜",
+    "question": "Osmanlı Devleti'nin kurucusu olan ilk padişah kimdir?",
+    "answers": [
+      "osman gazi",
+      "osman bey",
+      "osman"
+    ]
+  },
+  {
+    "id": 9,
+    "category": "Tarih 📜",
+    "question": "Türkiye Büyük Millet Meclisi (TBMM) hangi yılda açılmıştır?",
+    "answers": [
+      "1920",
+      "bin dokuz yüz yirmi"
+    ]
+  },
+  {
+    "id": 10,
+    "category": "Tarih 📜",
+    "question": "İstiklal Marşımızın yazarı (şairi) kimdir?",
+    "answers": [
+      "mehmet akif ersoy",
+      "mehmet akif",
+      "mehmed akif"
+    ]
+  },
+  {
+    "id": 11,
+    "category": "Tarih 📜",
+    "question": "Malazgirt Meydan Muharebesi hangi yılda yapılmıştır?",
+    "answers": [
+      "1071",
+      "bin yetmiş bir"
+    ]
+  },
+  {
+    "id": 12,
+    "category": "Tarih 📜",
+    "question": "Anıtkabir hangi şehrimizdedir?",
+    "answers": [
+      "ankara"
+    ]
+  },
+  {
+    "id": 13,
+    "category": "Tarih 📜",
+    "question": "Osmanlı Devleti'nin ilk başkenti neresidir?",
+    "answers": [
+      "söğüt",
+      "sogut",
+      "bursa",
+      "iznik"
+    ]
+  },
+  {
+    "id": 14,
+    "category": "Tarih 📜",
+    "question": "Cumhuriyet döneminde Kadınlara Seçme ve Seçilme Hakkı hangi yıl verilmiştir?",
+    "answers": [
+      "1934",
+      "bin dokuz yüz otuz dört"
+    ]
+  },
+  {
+    "id": 15,
+    "category": "Tarih 📜",
+    "question": "Atatürk'ün naaşının bulunduğu Anıtkabir hangi tepe üzerine inşa edilmiştir?",
+    "answers": [
+      "rasattepe",
+      "anettepe"
+    ]
+  },
+  {
+    "id": 16,
+    "category": "Oyun 🎮",
+    "question": "Minecraft'ta obsidyen kazmak için en az hangi kazma türü gereklidir?",
+    "answers": [
+      "elmas",
+      "elmas kazma",
+      "diamond",
+      "diamond pickaxe",
+      "netherite",
+      "netherit kazma"
+    ]
+  },
+  {
+    "id": 17,
+    "category": "Oyun 🎮",
+    "question": "Minecraft'ın son boyutu olan ejderhanın bulunduğu boyutun adı nedir?",
+    "answers": [
+      "end",
+      "the end"
+    ]
+  },
+  {
+    "id": 18,
+    "category": "Oyun 🎮",
+    "question": "CS:GO / CS2 oyununda C4 bombası kurulduktan kaç saniye sonra patlar?",
+    "answers": [
+      "40",
+      "40 saniye",
+      "40 sn",
+      "kırk"
+    ]
+  },
+  {
+    "id": 19,
+    "category": "Oyun 🎮",
+    "question": "Steam platformunun ve Half-Life serisinin geliştiricisi olan şirket hangisidir?",
+    "answers": [
+      "valve",
+      "valve corporation"
+    ]
+  },
+  {
+    "id": 20,
+    "category": "Oyun 🎮",
+    "question": "GTA 5'in kurgusal şehri Los Santos, gerçekte hangi Amerikan şehrinden esinlenilmiştir?",
+    "answers": [
+      "los angeles",
+      "la"
+    ]
+  },
+  {
+    "id": 21,
+    "category": "Oyun 🎮",
+    "question": "GTA San Andreas oyununun ana karakterinin adı nedir?",
+    "answers": [
+      "cj",
+      "carl johnson",
+      "carl"
+    ]
+  },
+  {
+    "id": 22,
+    "category": "Oyun 🎮",
+    "question": "Valorant oyununun yapımcısı olan şirket hangisidir?",
+    "answers": [
+      "riot",
+      "riot games"
+    ]
+  },
+  {
+    "id": 23,
+    "category": "Oyun 🎮",
+    "question": "League of Legends (LoL) oyunundaki alev ejderinin verdiği güç nedir? (Hasar / Saldırı)",
+    "answers": [
+      "hasar",
+      "saldırı gücü",
+      "ad",
+      "ap",
+      "atak",
+      "hasar gücü"
+    ]
+  },
+  {
+    "id": 24,
+    "category": "Oyun 🎮",
+    "question": "The Witcher serisinin ana karakteri olan efsanevi canavar avcısının adı nedir?",
+    "answers": [
+      "geralt",
+      "geralt of rivia",
+      "rivyalı geralt"
+    ]
+  },
+  {
+    "id": 25,
+    "category": "Oyun 🎮",
+    "question": "Fortnite oyununda battle royale moduna aynı anda uçaktan kaç oyuncu atlar?",
+    "answers": [
+      "100",
+      "yüz"
+    ]
+  },
+  {
+    "id": 26,
+    "category": "Oyun 🎮",
+    "question": "PlayStation konsolunu üreten dünyaca ünlü Japon teknoloji şirketi hangisidir?",
+    "answers": [
+      "sony"
+    ]
+  },
+  {
+    "id": 27,
+    "category": "Oyun 🎮",
+    "question": "Xbox konsolunu üreten teknoloji devi şirket hangisidir?",
+    "answers": [
+      "microsoft"
+    ]
+  },
+  {
+    "id": 28,
+    "category": "Oyun 🎮",
+    "question": "Red Dead Redemption 2 oyununun ana karakterinin adı nedir?",
+    "answers": [
+      "arthur morgan",
+      "arthur"
+    ]
+  },
+  {
+    "id": 29,
+    "category": "Oyun 🎮",
+    "question": "Minecraft'ta portal yakmak için kullanılan eşyanın adı nedir?",
+    "answers": [
+      "çakmak",
+      "çakmaktaşı ve çelik",
+      "flint and steel",
+      "çakmak taşı"
+    ]
+  },
+  {
+    "id": 30,
+    "category": "Oyun 🎮",
+    "question": "Roblox oyununun kurucusu ve CEO'su kimdir?",
+    "answers": [
+      "david baszucki",
+      "david",
+      "builderman"
+    ]
+  },
+  {
+    "id": 31,
+    "category": "Oyun 🎮",
+    "question": "Among Us oyununda gemideki hain katillere ne ad verilir?",
+    "answers": [
+      "impostor",
+      "imposter",
+      "sahtekar"
+    ]
+  },
+  {
+    "id": 32,
+    "category": "Oyun 🎮",
+    "question": "God of War oyununun ana karakteri olan Savaş Tanrısı'nın adı nedir?",
+    "answers": [
+      "kratos"
+    ]
+  },
+  {
+    "id": 33,
+    "category": "Oyun 🎮",
+    "question": "PUBG oyununun ilk ve en meşhur haritasının adı nedir?",
+    "answers": [
+      "erangel"
+    ]
+  },
+  {
+    "id": 34,
+    "category": "Oyun 🎮",
+    "question": "Assassin's Creed serisinin İtalya'da geçen ünlü karakterinin adı nedir?",
+    "answers": [
+      "ezio",
+      "ezio auditore"
+    ]
+  },
+  {
+    "id": 35,
+    "category": "Oyun 🎮",
+    "question": "Cyberpunk 2077 oyununda Keanu Reeves'in canlandırdığı karakterin adı nedir?",
+    "answers": [
+      "johnny silverhand",
+      "silverhand",
+      "johnny"
+    ]
+  },
+  {
+    "id": 36,
+    "category": "Coğrafya 🌍",
+    "question": "Türkiye'nin başkenti neresidir?",
+    "answers": [
+      "ankara"
+    ]
+  },
+  {
+    "id": 37,
+    "category": "Coğrafya 🌍",
+    "question": "Dünyanın en kalabalık nüfusuna sahip kıtası hangisidir?",
+    "answers": [
+      "asya",
+      "asya kıtası"
+    ]
+  },
+  {
+    "id": 38,
+    "category": "Coğrafya 🌍",
+    "question": "Fransa'nın başkenti neresidir?",
+    "answers": [
+      "paris"
+    ]
+  },
+  {
+    "id": 39,
+    "category": "Coğrafya 🌍",
+    "question": "Almanya'nın başkenti neresidir?",
+    "answers": [
+      "berlin"
+    ]
+  },
+  {
+    "id": 40,
+    "category": "Coğrafya 🌍",
+    "question": "İngiltere'nin (Birleşik Krallık) başkenti neresidir?",
+    "answers": [
+      "londra",
+      "london"
+    ]
+  },
+  {
+    "id": 41,
+    "category": "Coğrafya 🌍",
+    "question": "Japonya'nın başkenti neresidir?",
+    "answers": [
+      "tokyo"
+    ]
+  },
+  {
+    "id": 42,
+    "category": "Coğrafya 🌍",
+    "question": "Dünyanın en yüksek dağı hangisidir?",
+    "answers": [
+      "everest",
+      "everest dağı",
+      "mount everest"
+    ]
+  },
+  {
+    "id": 43,
+    "category": "Coğrafya 🌍",
+    "question": "Türkiye'nin en yüksek dağı hangisidir?",
+    "answers": [
+      "ağrı dağı",
+      "ağrı",
+      "agri"
+    ]
+  },
+  {
+    "id": 44,
+    "category": "Coğrafya 🌍",
+    "question": "Türkiye'nin en büyük gölü hangisidir?",
+    "answers": [
+      "van gölü",
+      "van"
+    ]
+  },
+  {
+    "id": 45,
+    "category": "Coğrafya 🌍",
+    "question": "Dünyanın en uzun nehri hangisidir?",
+    "answers": [
+      "nil",
+      "nil nehri",
+      "amazon"
+    ]
+  },
+  {
+    "id": 46,
+    "category": "Coğrafya 🌍",
+    "question": "İtalya'nın başkenti neresidir?",
+    "answers": [
+      "roma",
+      "rome"
+    ]
+  },
+  {
+    "id": 47,
+    "category": "Coğrafya 🌍",
+    "question": "İspanya'nın başkenti neresidir?",
+    "answers": [
+      "madrid"
+    ]
+  },
+  {
+    "id": 48,
+    "category": "Coğrafya 🌍",
+    "question": "Rusya'nın başkenti neresidir?",
+    "answers": [
+      "moskova",
+      "moscow"
+    ]
+  },
+  {
+    "id": 49,
+    "category": "Coğrafya 🌍",
+    "question": "Dünyanın yüzölçümü bakımından en büyük ülkesi hangisidir?",
+    "answers": [
+      "rusya",
+      "rusya federasyonu"
+    ]
+  },
+  {
+    "id": 50,
+    "category": "Coğrafya 🌍",
+    "question": "Türkiye'nin kaç coğrafi bölgesi vardır?",
+    "answers": [
+      "7",
+      "yedi"
+    ]
+  },
+  {
+    "id": 51,
+    "category": "Bilim & Uzay 🚀",
+    "question": "Güneş sistemimizdeki en büyük gezegen hangisidir?",
+    "answers": [
+      "jüpiter",
+      "jupiter"
+    ]
+  },
+  {
+    "id": 52,
+    "category": "Bilim & Uzay 🚀",
+    "question": "Güneş sisteminde güneşe en yakın olan gezegen hangisidir?",
+    "answers": [
+      "merkür",
+      "merkur"
+    ]
+  },
+  {
+    "id": 53,
+    "category": "Bilim & Uzay 🚀",
+    "question": "Dünyamızın doğal uydusu nedir?",
+    "answers": [
+      "ay",
+      "moon"
+    ]
+  },
+  {
+    "id": 54,
+    "category": "Bilim & Uzay 🚀",
+    "question": "Kızıl Gezegen olarak bilinen gezegenin adı nedir?",
+    "answers": [
+      "mars"
+    ]
+  },
+  {
+    "id": 55,
+    "category": "Bilim & Uzay 🚀",
+    "question": "İlk Türk astronotumuzun adı nedir?",
+    "answers": [
+      "alper gezeravcı",
+      "alper gezeravci",
+      "alper"
+    ]
+  },
+  {
+    "id": 56,
+    "category": "Bilim & Uzay 🚀",
+    "question": "Suyun kimyasal formülü nedir?",
+    "answers": [
+      "h2o",
+      "h20"
+    ]
+  },
+  {
+    "id": 57,
+    "category": "Kimya 🧪",
+    "question": "Periyodik tabloda Au sembolü hangi elementi temsil eder?",
+    "answers": [
+      "altın",
+      "altin",
+      "gold"
+    ]
+  },
+  {
+    "id": 58,
+    "category": "Kimya 🧪",
+    "question": "Periyodik tabloda Fe sembolü hangi elementi temsil eder?",
+    "answers": [
+      "demir",
+      "iron"
+    ]
+  },
+  {
+    "id": 59,
+    "category": "Teknoloji 💻",
+    "question": "Apple şirketinin efsanevi kurucusu kimdir?",
+    "answers": [
+      "steve jobs",
+      "steve"
+    ]
+  },
+  {
+    "id": 60,
+    "category": "Teknoloji 💻",
+    "question": "Tesla ve SpaceX şirketlerinin CEO'su olan milyarder kimdir?",
+    "answers": [
+      "elon musk",
+      "elon"
+    ]
+  },
+  {
+    "id": 61,
+    "category": "Teknoloji 💻",
+    "question": "Python programlama dilinin maskotu hangi hayvandır?",
+    "answers": [
+      "yılan",
+      "piton",
+      "python"
+    ]
+  },
+  {
+    "id": 62,
+    "category": "Teknoloji 💻",
+    "question": "Dünyanın en popüler arama motoru hangisidir?",
+    "answers": [
+      "google"
+    ]
+  },
+  {
+    "id": 63,
+    "category": "Fizik ⚡",
+    "question": "Yerçekimi kanununu başına elma düşmesiyle keşfeden ünlü fizikçi kimdir?",
+    "answers": [
+      "isaac newton",
+      "newton"
+    ]
+  },
+  {
+    "id": 64,
+    "category": "Fizik ⚡",
+    "question": "İzafiyet (Görelilik) Teorisini ortaya atan dünyaca ünlü dahi fizikçi kimdir?",
+    "answers": [
+      "albert einstein",
+      "einstein"
+    ]
+  },
+  {
+    "id": 65,
+    "category": "Teknoloji 💻",
+    "question": "1 Bayt (Byte) kaç Bit'ten oluşur?",
+    "answers": [
+      "8",
+      "sekiz"
+    ]
+  },
+  {
+    "id": 66,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 15 x 6 işleminin sonucu kaçtır?",
+    "answers": [
+      "90",
+      "doksan"
+    ]
+  },
+  {
+    "id": 67,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 128 / 4 işleminin sonucu kaçtır?",
+    "answers": [
+      "32",
+      "otuz iki"
+    ]
+  },
+  {
+    "id": 68,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 7'nin karesi (7 x 7) kaçtır?",
+    "answers": [
+      "49",
+      "kırk dokuz"
+    ]
+  },
+  {
+    "id": 69,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 250 - 85 işleminin sonucu kaçtır?",
+    "answers": [
+      "165",
+      "yüz altmış beş"
+    ]
+  },
+  {
+    "id": 70,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 12 x 12 işleminin sonucu kaçtır?",
+    "answers": [
+      "144",
+      "yüz kırk dört"
+    ]
+  },
+  {
+    "id": 71,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 99 + 101 işleminin sonucu kaçtır?",
+    "answers": [
+      "200",
+      "iki yüz"
+    ]
+  },
+  {
+    "id": 72,
+    "category": "Matematik 🧠",
+    "question": "Bir üçgenin iç açıları toplamı kaç derecedir?",
+    "answers": [
+      "180",
+      "yüz seksen"
+    ]
+  },
+  {
+    "id": 73,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 5 Faktöriyel (5!) kaçtır? (5x4x3x2x1)",
+    "answers": [
+      "120",
+      "yüz yirmi"
+    ]
+  },
+  {
+    "id": 74,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 100'ün yüzde 20'si kaçtır?",
+    "answers": [
+      "20",
+      "yirmi"
+    ]
+  },
+  {
+    "id": 75,
+    "category": "Matematik 🧠",
+    "question": "Matematik Sorusu: 8 x 9 işleminin sonucu kaçtır?",
+    "answers": [
+      "72",
+      "yetmiş iki"
+    ]
+  },
+  {
+    "id": 76,
+    "category": "Sanat & Kültür 🎨",
+    "question": "Mona Lisa tablosunu yapan ünlü İtalyan ressam kimdir?",
+    "answers": [
+      "leonardo da vinci",
+      "da vinci",
+      "leonardo"
+    ]
+  },
+  {
+    "id": 77,
+    "category": "Genel Kültür 🎬",
+    "question": "Netflix ilk olarak hangi ülkede kurulmuştur?",
+    "answers": [
+      "amerika",
+      "abd",
+      "usa",
+      "amerika birleşik devletleri"
+    ]
+  },
+  {
+    "id": 78,
+    "category": "Sinema 🍿",
+    "question": "Yüzüklerin Efendisi serisinde yüzüğü yok etmek için Hüküm Dağı'na götüren Hobbit kimdir?",
+    "answers": [
+      "frodo",
+      "frodo baggins"
+    ]
+  },
+  {
+    "id": 79,
+    "category": "Sinema 🍿",
+    "question": "Harry Potter serisinde Harry'nin en yakın arkadaşı olan kızıl saçlı karakter kimdir?",
+    "answers": [
+      "ron",
+      "ron weasley"
+    ]
+  },
+  {
+    "id": 80,
+    "category": "Sinema 🍿",
+    "question": "Yıldız Savaşları (Star Wars) serisinde Luke Skywalker'ın babası olan karanlık lord kimdir?",
+    "answers": [
+      "darth vader",
+      "vader",
+      "anakin",
+      "anakin skywalker"
+    ]
+  },
+  {
+    "id": 81,
+    "category": "Sinema 🍿",
+    "question": "Marvel evreninde Demir Adam (Iron Man) zırhını giyen milyarderin adı nedir?",
+    "answers": [
+      "tony stark",
+      "tony"
+    ]
+  },
+  {
+    "id": 82,
+    "category": "Sinema 🍿",
+    "question": "Karayip Korsanları serisindeki meşhur kaptanın tam adı nedir? (Kaptan ...)",
+    "answers": [
+      "jack sparrow",
+      "sparrow"
+    ]
+  },
+  {
+    "id": 83,
+    "category": "Anime 🎌",
+    "question": "Naruto animesinde Naruto'nun içinde mühürlü olan Dokuz Kuyruklu Tilki'nin adı nedir?",
+    "answers": [
+      "kurama",
+      "dokuz kuyruklu",
+      "kyuubi"
+    ]
+  },
+  {
+    "id": 84,
+    "category": "Anime 🎌",
+    "question": "Death Note animesinde ölüm defterini bulan dahi lise öğrencisinin adı nedir?",
+    "answers": [
+      "light",
+      "light yagami",
+      "kira"
+    ]
+  },
+  {
+    "id": 85,
+    "category": "Dizi 📺",
+    "question": "Breaking Bad dizisinde kimya öğretmeniyken uyuşturucu kralı olan ana karakterin adı nedir?",
+    "answers": [
+      "walter white",
+      "walter",
+      "heisenberg"
+    ]
+  },
+  {
+    "id": 86,
+    "category": "Spor ⚽",
+    "question": "Futbolda bir takım sahaya kaç oyuncuyla çıkar?",
+    "answers": [
+      "11",
+      "on bir"
+    ]
+  },
+  {
+    "id": 87,
+    "category": "Spor ⚽",
+    "question": "Futbol Dünya Kupası kaç yılda bir düzenlenir?",
+    "answers": [
+      "4",
+      "dört"
+    ]
+  },
+  {
+    "id": 88,
+    "category": "Spor ⚽",
+    "question": "2022 FIFA Dünya Kupası'nı kazanan Güney Amerika ülkesi hangisidir?",
+    "answers": [
+      "arjantin",
+      "argentina"
+    ]
+  },
+  {
+    "id": 89,
+    "category": "Spor ⚽",
+    "question": "Basketbolda standart bir maçta sahada her takımdan kaç oyuncu bulunur?",
+    "answers": [
+      "5",
+      "beş"
+    ]
+  },
+  {
+    "id": 90,
+    "category": "Spor ⚽",
+    "question": "Real Madrid hangi ülkenin futbol kulübüdür?",
+    "answers": [
+      "ispanya",
+      "spain"
+    ]
+  },
+  {
+    "id": 91,
+    "category": "Spor ⚽",
+    "question": "Cristiano Ronaldo hangi ülkenin milli takımında oynamaktadır?",
+    "answers": [
+      "portekiz",
+      "portugal"
+    ]
+  },
+  {
+    "id": 92,
+    "category": "Spor ⚽",
+    "question": "Lionel Messi hangi ülkenin vatandaşıdır?",
+    "answers": [
+      "arjantin"
+    ]
+  },
+  {
+    "id": 93,
+    "category": "Spor 🏀",
+    "question": "NBA hangi ülkenin profesyonel basketbol ligidir?",
+    "answers": [
+      "amerika",
+      "abd",
+      "usa"
+    ]
+  },
+  {
+    "id": 94,
+    "category": "Hızlı Refleks ⚡",
+    "question": "Hızlı Yazma: Şu kodu ilk yazan kazanır: LeaksTr2026",
+    "answers": [
+      "leakstr2026"
+    ]
+  },
+  {
+    "id": 95,
+    "category": "Hızlı Refleks ⚡",
+    "question": "Hızlı Yazma: Şu cümleyi ilk yazan kazanır: Ne Mutlu Türküm Diyene",
+    "answers": [
+      "ne mutlu türküm diyene",
+      "ne mutlu turkum diyene",
+      "ne mutlu türk'üm diyene"
+    ]
+  },
+  {
+    "id": 96,
+    "category": "Hızlı Refleks ⚡",
+    "question": "Hızlı Yazma: Şu kelimeyi ilk yazan kazanır: GeneratorVIP",
+    "answers": [
+      "generatorvip"
+    ]
+  },
+  {
+    "id": 97,
+    "category": "Hızlı Refleks ⚡",
+    "question": "Hızlı Yazma: Şu kodu ilk yazan kazanır: BEDAVA-HESAP",
+    "answers": [
+      "bedava-hesap",
+      "bedava hesap"
+    ]
+  },
+  {
+    "id": 98,
+    "category": "Hızlı Refleks ⚡",
+    "question": "Hızlı Yazma: Şu kelimeyi ilk yazan kazanır: MustafaKemalAtatürk",
+    "answers": [
+      "mustafakemalatatürk",
+      "mustafakemalaturk"
+    ]
+  },
+  {
+    "id": 99,
+    "category": "Hızlı Refleks ⚡",
+    "question": "Hızlı Yazma: Şu kelimeyi ilk yazan kazanır: TürkiyeCumhuriyeti",
+    "answers": [
+      "türkiyecumhuriyeti",
+      "turkiyecumhuriyeti"
+    ]
+  },
+  {
+    "id": 100,
+    "category": "Hızlı Refleks ⚡",
+    "question": "Hızlı Yazma: Şu kodu ilk yazan kazanır: LEAKS-WINNER",
+    "answers": [
+      "leaks-winner"
+    ]
+  }
+]
