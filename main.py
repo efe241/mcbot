@@ -156,6 +156,23 @@ def format_seconds(seconds: float) -> str:
         parts.append(f"{secs} saniye")
     return " ".join(parts)
 
+async def safe_respond(interaction: discord.Interaction, embed=None, content=None, view=None, ephemeral=True):
+    try:
+        kwargs = {"ephemeral": ephemeral}
+        if embed is not None:
+            kwargs["embed"] = embed
+        if content is not None:
+            kwargs["content"] = content
+        if view is not None:
+            kwargs["view"] = view
+
+        if not interaction.response.is_done():
+            await interaction.response.send_message(**kwargs)
+        else:
+            await interaction.followup.send(**kwargs)
+    except Exception as e:
+        print(f"[RESPOND ERROR] {e}")
+
 async def log_claim(guild: discord.Guild, user: discord.User, service: dict, account_data: str, is_vip: bool):
     # Record to internal database logs
     db.add_event_log(
@@ -989,17 +1006,13 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_free_services"
     )
     async def free_services_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         view = CategorySelectView(category="free", is_vip=False)
         embed = discord.Embed(
             title="🎁 Free (Ücretsiz) Servisler",
             description="Aşağıdaki açılır menüden almak istediğiniz ücretsiz servisi seçin:",
             color=discord.Color.blue()
         )
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        await safe_respond(interaction, embed=embed, view=view, ephemeral=True)
 
     @discord.ui.button(
         label="VIP Servisler",
@@ -1008,10 +1021,6 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_vip_services"
     )
     async def vip_services_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         member = interaction.guild.get_member(interaction.user.id) if interaction.guild else None
         user_is_vip = is_vip_user(member) if member else False
 
@@ -1021,7 +1030,7 @@ class MainPanelView(discord.ui.View):
                 description="Bu servis alanı **sadece VIP ve Server Booster üyeler** içindir!\nVIP üyelik almak veya sunucuya Nitro Boost basmak için yöneticilerle iletişime geçin.",
                 color=discord.Color.red()
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await safe_respond(interaction, embed=embed, ephemeral=True)
             return
 
         view = CategorySelectView(category="vip", is_vip=True)
@@ -1030,7 +1039,7 @@ class MainPanelView(discord.ui.View):
             description="Aşağıdaki açılır menüden almak istediğiniz VIP servisi seçin:",
             color=discord.Color.gold()
         )
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        await safe_respond(interaction, embed=embed, view=view, ephemeral=True)
 
     @discord.ui.button(
         label="Günlük Şans Çarkı",
@@ -1039,12 +1048,7 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_daily_wheel"
     )
     async def daily_wheel_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         user = interaction.user
-        
         can_spin, remaining_sec = db.check_user_wheel_spin(user.id)
         if not can_spin:
             unlock_timestamp = int(time.time() + remaining_sec)
@@ -1053,7 +1057,7 @@ class MainPanelView(discord.ui.View):
                 description=f"Günlük Şans Çarkını zaten çevirdiniz!\n\n⏱️ **Yeniden Çevirme Hakkı:** <t:{unlock_timestamp}:R> ({format_seconds(remaining_sec)})",
                 color=discord.Color.orange()
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await safe_respond(interaction, embed=embed, ephemeral=True)
             return
 
         # RECORD SPIN
@@ -1095,7 +1099,7 @@ class MainPanelView(discord.ui.View):
             timestamp=discord.utils.utcnow()
         )
         wheel_embed.set_footer(text="LeaksTr Günlük Şans Çarkı • 24 Saatte 1 Çevirme Hakkı")
-        await interaction.followup.send(embed=wheel_embed, ephemeral=True)
+        await safe_respond(interaction, embed=wheel_embed, ephemeral=True)
 
     @discord.ui.button(
         label="Hatalı Stok Bildir",
@@ -1104,15 +1108,11 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_report_broken_stock"
     )
     async def report_broken_stock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         user = interaction.user
         guild = interaction.guild
 
         if not guild:
-            await interaction.followup.send("❌ Bu işlem sadece sunucu içerisinde gerçekleştirilebilir.", ephemeral=True)
+            await safe_respond(interaction, content="❌ Bu işlem sadece sunucu içerisinde gerçekleştirilebilir.", ephemeral=True)
             return
 
         channel_name = f"🚨-hatali-stok-{user.name[:10]}".lower().replace(" ", "-")
@@ -1158,10 +1158,10 @@ class MainPanelView(discord.ui.View):
                 description=f"Telafi talebiniz için özel destek kanalı açıldı:\n👉 {ticket_channel.mention}\n\nLütfen kanala giderek **hataya dair ekran görüntüsünü (görseli)** iletin.",
                 color=discord.Color.green()
             )
-            await interaction.followup.send(embed=success_embed, ephemeral=True)
+            await safe_respond(interaction, embed=success_embed, ephemeral=True)
 
         except Exception as e:
-            await interaction.followup.send(f"❌ Ticket kanalı açılırken hata oluştu: {e}", ephemeral=True)
+            await safe_respond(interaction, content=f"❌ Ticket kanalı açılırken hata oluştu: {e}", ephemeral=True)
 
     @discord.ui.button(
         label="Stok Durumu",
@@ -1170,12 +1170,7 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_stock_status"
     )
     async def stock_status_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         services = db.get_services()
-        
         free_services = [s for s in services if s.get("category") == "free"]
         vip_services = [s for s in services if s.get("category") == "vip"]
 
@@ -1223,7 +1218,7 @@ class MainPanelView(discord.ui.View):
         embed.add_field(name="⭐ VIP Servis Stokları", value=vip_text or "Servis bulunmuyor.", inline=False)
         embed.set_footer(text="Stoklar otomatik olarak güncellenir.")
 
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await safe_respond(interaction, embed=embed, ephemeral=True)
 
     @discord.ui.button(
         label="Profilim / Haklarım",
@@ -1232,10 +1227,6 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_user_profile"
     )
     async def user_profile_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         user = interaction.user
         member = interaction.guild.get_member(user.id) if interaction.guild else None
         
@@ -1287,7 +1278,7 @@ class MainPanelView(discord.ui.View):
                 inline=False
             )
 
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await safe_respond(interaction, embed=embed, ephemeral=True)
 
     @discord.ui.button(
         label="Sorumluluk Reddi",
@@ -1296,10 +1287,6 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_disclaimer"
     )
     async def disclaimer_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         embed = discord.Embed(
             title="⚖️ LEAKSTR YASAL UYARI & SORUMLULUK REDDİ BEYANI",
             description=(
@@ -1319,7 +1306,7 @@ class MainPanelView(discord.ui.View):
             timestamp=discord.utils.utcnow()
         )
         embed.set_footer(text="LeaksTr Generator System • Yasal Şartlar & Kullanım Koşulları")
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await safe_respond(interaction, embed=embed, ephemeral=True)
 
     @discord.ui.button(
         label="🏆 Liderlik Tablosu",
@@ -1328,12 +1315,7 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_leaderboard"
     )
     async def leaderboard_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         leaderboard = db.get_leaderboard(limit=10)
-
         embed = discord.Embed(
             title="🏆 LeaksTr En Aktif Üyeler Liderlik Tablosu",
             description="En çok stok alan ve sunucuyu büyüten en aktif üyelerimiz:",
@@ -1352,7 +1334,7 @@ class MainPanelView(discord.ui.View):
             rank_text += f"{medal} <@{u_id}> {vip_mark} • **{claims} Stok** | **{invites} Davet**\n"
 
         embed.add_field(name="Top 10 Üye", value=rank_text or "Henüz veri yok.", inline=False)
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await safe_respond(interaction, embed=embed, ephemeral=True)
 
     @discord.ui.button(
         label="Admin Paneli",
@@ -1361,14 +1343,9 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_admin_panel"
     )
     async def admin_panel_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
-
         member = interaction.guild.get_member(interaction.user.id) if interaction.guild else None
         if not member or not is_admin_user(member):
-            await interaction.followup.send("❌ **Erişim Engellendi!** Bu panel sadece Yöneticilere özeldir.", ephemeral=True)
+            await safe_respond(interaction, content="❌ **Erişim Engellendi!** Bu panel sadece Yöneticilere özeldir.", ephemeral=True)
             return
 
         embed = discord.Embed(
@@ -1380,7 +1357,7 @@ class MainPanelView(discord.ui.View):
             color=discord.Color.red()
         )
         view = AdminPanelView()
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+        await safe_respond(interaction, embed=embed, view=view, ephemeral=True)
 
     # BACKWARD COMPATIBILITY FALLBACK FOR OLD PANEL MESSAGES
     @discord.ui.button(
@@ -1390,10 +1367,6 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_coin_market"
     )
     async def legacy_coin_market_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        try:
-            await interaction.response.defer(ephemeral=True)
-        except Exception:
-            pass
         embed = discord.Embed(
             title="🪙 Coin Sistemi Güncellendi",
             description=(
@@ -1404,7 +1377,7 @@ class MainPanelView(discord.ui.View):
             ),
             color=discord.Color.gold()
         )
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await safe_respond(interaction, embed=embed, ephemeral=True)
 
 
 async def perform_sync_cleanly(guild_obj=None):
