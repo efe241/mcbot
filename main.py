@@ -672,6 +672,40 @@ class AdminPanelView(discord.ui.View):
         )
         asyncio.create_task(scheduled_dm_reminder_task())
 
+    @discord.ui.button(label="📋 Üye Hakları Listesi", style=discord.ButtonStyle.primary, emoji="📋")
+    async def user_limits_list_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        users_status = db.get_all_users_claim_status()
+        embed = discord.Embed(
+            title="📋 LeaksTr Kayıtlı Üyelerin Kalan Stok Hakları",
+            description="Sunucudaki kayıtlı üyelerin anlık kalan hakları ve bekleme süreleri:",
+            color=discord.Color.gold(),
+            timestamp=discord.utils.utcnow()
+        )
+        if not users_status:
+            embed.description = "Henüz kayıtlı bir üye verisi bulunmuyor."
+        else:
+            lines = []
+            for u in users_status[:20]:
+                uid = u["user_id"]
+                vip_badge = "⭐ VIP" if u["is_vip"] else "🎁 Normal"
+                used = u["claims_count"]
+                limit = u["daily_limit"]
+                rem = u["remaining_rights"]
+                total = u["total_claims"]
+
+                if rem > 0:
+                    status_badge = f"🟢 **{rem} Hak Alabilir**"
+                else:
+                    cd_str = format_seconds(u["remaining_sec"])
+                    status_badge = f"⏳ **Kilitli** ({cd_str})"
+
+                lines.append(f"• <@{uid}>\n  └ [{vip_badge}] Günlük: **{used}/{limit}** | Kalan: {status_badge} | Toplam: `{total} stok`")
+
+            embed.description = "\n".join(lines)[:4000]
+
+        embed.set_footer(text="Yönetici Canlı Kontrol Listesi • /kullanici-incele ile detay gör")
+        await safe_respond(interaction, embed=embed, ephemeral=True)
+
     @discord.ui.button(label="🗑️ Stok Sıfırla", style=discord.ButtonStyle.danger, emoji="❌")
     async def clear_stock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
@@ -2149,6 +2183,109 @@ async def hitabe_gonder_command(interaction: discord.Interaction, kanal: discord
         await safe_respond(interaction, content=f"🇹🇷 Gençliğe Hitabe başarıyla {target_channel.mention} kanalına gönderildi!", ephemeral=True)
     except Exception as e:
         await safe_respond(interaction, content=f"❌ **Gönderme Hatası:** {e}\n*(Botun {target_channel.mention} kanalında 'Mesaj Gönder' ve 'Embed Ekle' yetkisi olduğundan emin olun!)*", ephemeral=True)
+
+
+@bot.tree.command(name="hak-listesi", description="📋 Kayıtlı üyelerin kalan günlük haklarını ve bekleme sürelerini listeler (Admin)")
+@app_commands.default_permissions(administrator=True)
+async def hak_listesi_command(interaction: discord.Interaction):
+    if not is_admin_user(interaction.user):
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    users_status = db.get_all_users_claim_status()
+    embed = discord.Embed(
+        title="📋 LeaksTr Kayıtlı Üyelerin Kalan Stok Hakları",
+        description="Sunucudaki kayıtlı üyelerin anlık kalan hakları ve bekleme süreleri:",
+        color=discord.Color.gold(),
+        timestamp=discord.utils.utcnow()
+    )
+    if not users_status:
+        embed.description = "Henüz kayıtlı bir üye verisi bulunmuyor."
+    else:
+        lines = []
+        for u in users_status[:25]:
+            uid = u["user_id"]
+            vip_badge = "⭐ VIP" if u["is_vip"] else "🎁 Normal"
+            used = u["claims_count"]
+            limit = u["daily_limit"]
+            rem = u["remaining_rights"]
+            total = u["total_claims"]
+
+            if rem > 0:
+                status_badge = f"🟢 **{rem} Hak Alabilir**"
+            else:
+                cd_str = format_seconds(u["remaining_sec"])
+                status_badge = f"⏳ **Kilitli** ({cd_str})"
+
+            lines.append(f"• <@{uid}>\n  └ [{vip_badge}] Günlük: **{used}/{limit}** | Kalan: {status_badge} | Toplam: `{total} stok`")
+
+        embed.description = "\n".join(lines)[:4000]
+
+    embed.set_footer(text="Yönetici Canlı Kontrol Listesi • /kullanici-incele @üye ile detay gör")
+    await safe_respond(interaction, embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="kullanici-incele", description="🔍 Belirli bir üyenin detaylı haklarını, geçmişini ve loglarını inceler (Admin)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(kullanici="İncelenecek üye")
+async def kullanici_incele_command(interaction: discord.Interaction, kullanici: discord.User):
+    if not is_admin_user(interaction.user):
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    member = interaction.guild.get_member(kullanici.id) if interaction.guild else None
+    user_is_booster = is_booster_user(member) if member else False
+    user_is_vip = is_vip_user(member) if member else False
+
+    u_data = db.get_user_data(kullanici.id)
+    can_claim, remaining_sec, claims_count, daily_limit = db.check_user_cooldown(
+        kullanici.id, is_vip=user_is_vip, is_booster=user_is_booster
+    )
+
+    remaining_rights = max(0, daily_limit - claims_count)
+
+    if user_is_booster:
+        status_str = f"🚀 Server Booster (Günlük {daily_limit} Hak)"
+    elif user_is_vip:
+        status_str = f"⭐ VIP Üye (Günlük {daily_limit} Hak)"
+    else:
+        status_str = f"🎁 Normal Üye (Günlük {daily_limit} Hak)"
+
+    embed = discord.Embed(
+        title=f"🔍 Üye Detaylı İnceleme: {kullanici.name}",
+        color=discord.Color.blue(),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_thumbnail(url=kullanici.display_avatar.url)
+    embed.add_field(name="🆔 Kullanıcı ID", value=f"`{kullanici.id}`", inline=True)
+    embed.add_field(name="👑 Üyelik Türü", value=status_str, inline=True)
+    embed.add_field(name="📦 Toplam Stok Alımı", value=f"**{u_data.get('total_claims', 0)}** adet", inline=True)
+
+    embed.add_field(name="📊 Bugün Kullanılan", value=f"**{claims_count} / {daily_limit}** hak", inline=True)
+    embed.add_field(name="🟢 Kalan Anlık Hak", value=f"**{remaining_rights} hak**" if remaining_rights > 0 else "❌ **0 hak (Kilitli)**", inline=True)
+    
+    if remaining_sec > 0:
+        unlock_ts = int(time.time() + remaining_sec)
+        embed.add_field(name="⏳ Kalan Bekleme Süresi", value=f"<t:{unlock_ts}:R> ({format_seconds(remaining_sec)})", inline=True)
+    else:
+        embed.add_field(name="⏳ Kalan Bekleme Süresi", value="🟢 **Bekleme yok (Hemen alabilir)**", inline=True)
+
+    embed.add_field(name="👥 Yaptığı Davet", value=f"**{u_data.get('invites', 0)}** davet", inline=True)
+    embed.add_field(name="💬 Chat Mesaj Sayısı", value=f"**{u_data.get('message_count', 0)}** mesaj", inline=True)
+
+    claims_history = u_data.get("claims", [])
+    if claims_history:
+        history_txt = ""
+        for c in reversed(claims_history[-5:]):
+            ts = int(c.get("timestamp", time.time()))
+            s_name = c.get("service_id", "Bilinmeyen Servis")
+            history_txt += f"• <t:{ts}:R> → `{s_name}`\n"
+        embed.add_field(name="📜 Son 5 Stok Alımı", value=history_txt, inline=False)
+    else:
+        embed.add_field(name="📜 Son Stok Alımları", value="Henüz stok alımı yapılmamış.", inline=False)
+
+    embed.set_footer(text=f"Sorgulayan Yetkili: {interaction.user.name}")
+    await safe_respond(interaction, embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="duyuru-test", description="📢 Otomatik 13:30/01:30 stok duyurusunu anında manuel olarak test eder (Admin)")

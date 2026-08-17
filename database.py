@@ -683,6 +683,49 @@ class DatabaseManager:
                 users[user_str]["last_reminder_sent"] = time.time()
                 _write_json(USERS_FILE, users)
 
+    def get_all_users_claim_status(self):
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            config = self.get_config()
+            cooldown_hours = config.get("cooldown_hours", 24)
+            cooldown_seconds = cooldown_hours * 3600
+            now = time.time()
+
+            result = []
+            for user_id, u_data in users.items():
+                is_vip = u_data.get("is_vip", False)
+                vip_expires = u_data.get("vip_expires", 0)
+                if vip_expires > 0 and now > vip_expires:
+                    is_vip = False
+
+                daily_limit = config.get("vip_daily_limit", 2) if is_vip else config.get("free_daily_limit", 1)
+                recent_claims = [t for t in u_data.get("daily_claims", []) if now - t < cooldown_seconds]
+                claims_count = len(recent_claims)
+                remaining_rights = max(0, daily_limit - claims_count)
+
+                remaining_sec = 0
+                if claims_count >= daily_limit and recent_claims:
+                    oldest = min(recent_claims)
+                    remaining_sec = max(0, cooldown_seconds - (now - oldest))
+
+                result.append({
+                    "user_id": user_id,
+                    "is_vip": is_vip,
+                    "vip_expires": vip_expires,
+                    "claims_count": claims_count,
+                    "daily_limit": daily_limit,
+                    "remaining_rights": remaining_rights,
+                    "remaining_sec": remaining_sec,
+                    "total_claims": u_data.get("total_claims", 0),
+                    "invites": u_data.get("invites", 0),
+                    "message_count": u_data.get("message_count", 0),
+                    "last_claim_timestamp": u_data.get("last_claim_timestamp", 0),
+                    "claims": u_data.get("claims", [])
+                })
+
+            result.sort(key=lambda x: (x["remaining_rights"], x["total_claims"]), reverse=True)
+            return result
+
     # PROMO KEYS / VOUCHER SYSTEM
     def create_promo_keys(self, reward_type: str, reward_value: str, count: int = 1):
         with _lock:
