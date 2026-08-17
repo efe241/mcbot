@@ -1776,6 +1776,207 @@ async def scheduled_trivia_task():
         print(f"⚠️ [TRIVIA HATA]: {e}")
 
 
+# --- AUTOMATIC CHAT DROP SYSTEM (60 SECONDS) ---
+active_drop = {
+    "is_active": False,
+    "channel_id": None,
+    "reward_type": "claim",
+    "reward_name": "+1 Ekstra Stok Hakkı",
+    "reward_details": "",
+    "specific_service": "",
+    "participants": set(),
+    "ends_at": 0
+}
+
+class DropJoinView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=75)
+
+    @discord.ui.button(label="🎉 Drop'a Katıl (0 Kişi)", style=discord.ButtonStyle.success, emoji="🎁", custom_id="btn_join_drop")
+    async def join_drop_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        global active_drop
+        if not active_drop["is_active"]:
+            await safe_respond(interaction, content="❌ Bu drop etkinliği sona erdi!", ephemeral=True)
+            return
+
+        user_id = interaction.user.id
+        if not check_user_chat_activity(interaction.user):
+            await safe_respond(
+                interaction,
+                content="⚠️ **Chat Şartı:** Drop'a katılabilmek için sunucu sohbetinde en az 1 mesajınız bulunmalıdır!",
+                ephemeral=True
+            )
+            return
+
+        if user_id in active_drop["participants"]:
+            await safe_respond(interaction, content="✅ **Zaten katıldınız!** 60 saniye sonunda talihli açıklanacak, bol şans!", ephemeral=True)
+            return
+
+        active_drop["participants"].add(user_id)
+        count = len(active_drop["participants"])
+        button.label = f"🎉 Drop'a Katıl ({count} Kişi)"
+        try:
+            await interaction.response.edit_message(view=self)
+        except Exception:
+            pass
+        await safe_respond(interaction, content=f"🎉 **Drop'a başarıyla katıldınız!** (Toplam Katılımcı: **{count} kişi**)", ephemeral=True)
+
+
+async def start_drop_in_channel(
+    channel: discord.TextChannel,
+    reward_type: str = "claim",
+    reward_name: str = "+1 Ekstra Stok Hakkı",
+    reward_details: str = "",
+    specific_service: str = "",
+    initiator_name: str = "Yönetici"
+):
+    global active_drop
+    if active_drop["is_active"]:
+        return False, "⚠️ Şu an zaten aktif bir drop etkinliği devam ediyor!"
+
+    active_drop["is_active"] = True
+    active_drop["channel_id"] = channel.id
+    active_drop["reward_type"] = reward_type
+    active_drop["reward_name"] = reward_name
+    active_drop["reward_details"] = reward_details
+    active_drop["specific_service"] = specific_service
+    active_drop["participants"] = set()
+    active_drop["ends_at"] = time.time() + 60
+
+    ends_ts = int(active_drop["ends_at"])
+    view = DropJoinView()
+
+    embed = discord.Embed(
+        title="🎁 ⚡ CHAT DROP BAŞLADI! (60 SANİYE) ⚡ 🎁",
+        description=(
+            f"👑 **Başlatan:** `{initiator_name}`\n\n"
+            f"🏆 **ÖDÜL:**\n> **{reward_name}**\n\n"
+            f"⏱️ **Kalan Süre:** <t:{ends_ts}:R> (Tam 60 Saniye)\n"
+            f"💬 **ŞART:** Chat şartını karşılayan (sohbette aktif olan) üyeler arasından rastgele 1 kişiye verilecektir!\n\n"
+            f"👉 **Nasıl Katılırım?**\n"
+            f"• Aşağıdaki **'🎉 Drop'a Katıl'** butonuna tıklayın **VEYA**\n"
+            f"• Bu 60 saniye içinde **chate herhangi bir mesaj yazın!**"
+        ),
+        color=discord.Color.gold(),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_footer(text="LeaksTr Drop Sistemi • 60 saniye sonra talihli açıklanır!")
+    if channel.guild and channel.guild.icon:
+        embed.set_thumbnail(url=channel.guild.icon.url)
+
+    drop_msg = await channel.send(content="🔔 @everyone **Yeni Chat Drop Başladı! Koşun!**", embed=embed, view=view)
+
+    async def drop_countdown_watcher():
+        await asyncio.sleep(60)
+        global active_drop
+        if not active_drop["is_active"]:
+            return
+
+        active_drop["is_active"] = False
+        participants_list = list(active_drop["participants"])
+
+        # Filter active chat participants
+        eligible = []
+        for uid in participants_list:
+            m = channel.guild.get_member(uid) if channel.guild else None
+            if m and not m.bot and check_user_chat_activity(m):
+                eligible.append(m)
+
+        if not eligible:
+            cancel_embed = discord.Embed(
+                title="⌛ DROP SONA ERDİ (KATILIMCI YOK)",
+                description=f"Maalesef 60 saniye içinde chat şartını sağlayan katılımcı bulunamadığı için drop sona erdi.",
+                color=discord.Color.red(),
+                timestamp=discord.utils.utcnow()
+            )
+            try:
+                await channel.send(embed=cancel_embed)
+            except Exception:
+                pass
+            return
+
+        # Pick random lucky winner
+        winner = random.choice(eligible)
+        delivered_acc = None
+
+        # Apply reward
+        r_type = active_drop["reward_type"]
+        r_name = active_drop["reward_name"]
+        
+        if r_type == "vip":
+            db.set_user_vip(winner.id, True, duration_hours=24)
+            r_desc = "⭐ **24 Saatlik VIP Üyelik** hesabınıza başarıyla tanımlandı!"
+        elif r_type == "claim":
+            db.reset_user_cooldown(winner.id)
+            r_desc = "🎁 **+1 Ekstra Stok Hakkı** (Günlük bekleme süreniz sıfırlandı)!"
+        elif r_type == "steam":
+            acc = db.get_stock_account("steam_free")
+            if acc:
+                delivered_acc = acc
+                r_desc = f"🎮 **Oyunlu Steam Hesabı** DM kutunuza teslim edildi!"
+            else:
+                r_desc = "🎮 **Oyunlu Steam Hakkı** kazandınız!"
+        elif r_type == "service":
+            serv_id = active_drop["specific_service"] or "netflix_free"
+            serv = db.get_service(serv_id)
+            s_title = serv["name"] if serv else serv_id
+            acc = db.get_stock_account(serv_id)
+            if acc:
+                delivered_acc = acc
+                r_desc = f"📦 **{s_title}** hesabınız DM kutunuza teslim edildi!"
+            else:
+                r_desc = f"📦 **{s_title}** hakkı kazandınız!"
+        else: # custom
+            if active_drop["reward_details"]:
+                delivered_acc = active_drop["reward_details"]
+            r_desc = f"🎁 **{r_name}** ödülünüz DM kutunuza iletildi!"
+
+        # Send DM if account exists
+        if delivered_acc:
+            try:
+                dm_emb = discord.Embed(
+                    title="🎉 Tebrikler! Drop Ödülünüz Teslim Edildi!",
+                    description=f"Sunucudaki **Chat Drop** etkinliğini kazandınız!\n\n**🔑 Hesap / Ödül Bilgisi:**\n```\n{delivered_acc}\n```",
+                    color=discord.Color.green()
+                )
+                await winner.send(embed=dm_emb)
+            except Exception:
+                pass
+
+        # Send Public Announcement to Chat
+        win_embed = discord.Embed(
+            title="🎉 🏆 DROP KAZANANI BELLİ OLDU! 🏆 🎉",
+            description=(
+                f"👏 **Tebrikler {winner.mention}!**\n\n"
+                f"🎁 **Kazanılan Ödül:**\n> **{r_name}**\n\n"
+                f"⚡ {r_desc}\n\n"
+                f"👥 **Toplam Katılımcı:** `{len(eligible)} aktif üye`"
+            ),
+            color=discord.Color.green(),
+            timestamp=discord.utils.utcnow()
+        )
+        win_embed.set_thumbnail(url=winner.display_avatar.url)
+        win_embed.set_footer(text=f"Talihli: {winner.name} • LeaksTr Drop Sistemi")
+        
+        try:
+            await channel.send(content=f"🎉 {winner.mention} **Droptan ödül kazandı!**", embed=win_embed)
+        except Exception:
+            pass
+
+        # Log event
+        db.add_event_log(
+            event_type="DROP",
+            user_id=winner.id,
+            username=winner.name,
+            title=f"Drop Kazandı: {r_name}",
+            details=f"Toplam Katılımcı: {len(eligible)} | Kanal: #{channel.name}",
+            service_id=r_type
+        )
+
+    asyncio.create_task(drop_countdown_watcher())
+    return True, "✅ Drop başarıyla başlatıldı!"
+
+
 # --- BOT EVENTS & INVITE TRACKER & MESSAGE TRACKER ---
 @bot.event
 async def on_ready():
@@ -1886,6 +2087,60 @@ async def on_message(message: discord.Message):
                 await message.reply(embed=win_embed)
             except Exception:
                 await message.channel.send(content=f"{message.author.mention}", embed=win_embed)
+
+    # DROP PARTICIPANT TRACKING (Chatting during active drop)
+    if active_drop["is_active"] and active_drop["channel_id"] == message.channel.id:
+        if check_user_chat_activity(message.author):
+            active_drop["participants"].add(message.author.id)
+
+    # PREFIX COMMANDS (Support ./drop or !drop)
+    msg_lower = message.content.strip().lower()
+    if msg_lower.startswith("./drop") or msg_lower.startswith("!drop"):
+        if is_admin_user(message.author):
+            parts = message.content.strip().split(maxsplit=2)
+            r_type = "claim"
+            r_name = "+1 Ekstra Stok Hakkı"
+            r_det = ""
+            serv_id = ""
+
+            if len(parts) >= 2:
+                arg = parts[1].lower()
+                if "vip" in arg:
+                    r_type = "vip"
+                    r_name = "⭐ 24 Saatlik VIP Üyelik"
+                elif "steam" in arg:
+                    r_type = "steam"
+                    r_name = "🎮 Oyunlu Steam Hesabı"
+                elif "stok" in arg or "hak" in arg or "claim" in arg:
+                    r_type = "claim"
+                    r_name = "🎁 +1 Ekstra Stok Hakkı"
+                elif db.get_service(arg):
+                    r_type = "service"
+                    serv_id = arg
+                    s = db.get_service(arg)
+                    r_name = f"📦 {s['name']} Hesabı"
+                else:
+                    r_type = "custom"
+                    r_name = parts[1]
+                    if len(parts) >= 3:
+                        r_det = parts[2]
+
+            if len(parts) >= 3 and r_type != "custom":
+                r_det = parts[2]
+
+            await start_drop_in_channel(
+                channel=message.channel,
+                reward_type=r_type,
+                reward_name=r_name,
+                reward_details=r_det,
+                specific_service=serv_id,
+                initiator_name=message.author.name
+            )
+            try:
+                await message.delete()
+            except Exception:
+                pass
+            return
 
     await bot.process_commands(message)
 
@@ -2477,6 +2732,66 @@ async def kupon_sil_command(interaction: discord.Interaction, kod: str):
         await safe_respond(interaction, content=f"✅ **`{kod.upper()}`** kupon kodu başarıyla silindi ve iptal edildi.", ephemeral=True)
     else:
         await safe_respond(interaction, content=f"❌ **`{kod.upper()}`** kodlu kupon bulunamadı.", ephemeral=True)
+
+
+@bot.tree.command(name="drop", description="🎁 60 saniyelik ödüllü Chat Drop etkinliği başlatır (Admin)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    odul_turu="Drop ile verilecek ödül türü",
+    servis_id="Özel servis seçildiyse servis (Örn: netflix_vip, tabii_vip, mc_vip)",
+    ozel_odul_metni="Özel ödül seçildiyse ödülün adı/hesabı/kodu",
+    kanal="Drop'un başlayacağı kanal (İsteğe bağlı, seçilmezse bulunulan kanalda başlar)"
+)
+@app_commands.choices(odul_turu=[
+    app_commands.Choice(name="🎁 +1 Ekstra Stok Hakkı (Bekleme Sıfırlama)", value="claim"),
+    app_commands.Choice(name="⭐ 24 Saatlik VIP Üyelik", value="vip"),
+    app_commands.Choice(name="🎮 Oyunlu Steam Hesabı", value="steam"),
+    app_commands.Choice(name="📦 Belirli Bir Servis Hesabı", value="service"),
+    app_commands.Choice(name="📝 Özel Ödül Metni / Kodu", value="custom")
+])
+async def drop_command(
+    interaction: discord.Interaction,
+    odul_turu: str = "claim",
+    servis_id: str = "",
+    ozel_odul_metni: str = "",
+    kanal: discord.TextChannel = None
+):
+    if not is_admin_user(interaction.user):
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    target_channel = kanal or interaction.channel
+    if not target_channel:
+        await safe_respond(interaction, content="❌ Hedef kanal belirlenemedi!", ephemeral=True)
+        return
+
+    if active_drop["is_active"]:
+        await safe_respond(interaction, content="⚠️ Şu an zaten aktif bir drop etkinliği devam ediyor!", ephemeral=True)
+        return
+
+    r_names = {
+        "claim": "🎁 +1 Ekstra Stok Hakkı (Bekleme Süresi Sıfırlama)",
+        "vip": "⭐ 24 Saatlik VIP Üyelik",
+        "steam": "🎮 Oyunlu Steam Hesabı",
+        "service": f"📦 {servis_id} Hesabı",
+        "custom": ozel_odul_metni or "🎁 Sürpriz Özel Ödül"
+    }
+
+    if odul_turu == "service" and servis_id:
+        serv = db.get_service(servis_id)
+        if serv:
+            r_names["service"] = f"📦 {serv['name']} Hesabı"
+
+    success, msg = await start_drop_in_channel(
+        channel=target_channel,
+        reward_type=odul_turu,
+        reward_name=r_names.get(odul_turu, "🎁 Sürpriz Ödül"),
+        reward_details=ozel_odul_metni,
+        specific_service=servis_id,
+        initiator_name=interaction.user.name
+    )
+
+    await safe_respond(interaction, content=f"🎁 **60 Saniyelik Drop {target_channel.mention} kanalında başlatıldı!**", ephemeral=True)
 
 
 @bot.tree.command(name="hitabe-gonder", description="🇹🇷 Belirtilen kanala anında Gençliğe Hitabe mesajı gönderir (Admin)")
