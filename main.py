@@ -477,6 +477,21 @@ class AdminPanelView(discord.ui.View):
         modal = RestockAnnouncementModal()
         await interaction.response.send_modal(modal)
 
+    @discord.ui.button(label="📬 DM Hatırlatıcı Gönder", style=discord.ButtonStyle.secondary, emoji="🔔")
+    async def trigger_reminder_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+        eligible = db.get_eligible_reminder_users()
+        await interaction.followup.send(
+            f"📬 **Otomatik DM Hatırlatıcı Başlatıldı!**\n"
+            f"• Bekleme süresi dolup şu an stok alabilecek üye sayısı: **{len(eligible)} kişi**\n"
+            f"• Arka planda güvenli aralıklarla (3-5 sn) özelden hatırlatma mesajları iletiliyor.",
+            ephemeral=True
+        )
+        asyncio.create_task(scheduled_dm_reminder_task())
+
     @discord.ui.button(label="🗑️ Stok Sıfırla", style=discord.ButtonStyle.danger, emoji="❌")
     async def clear_stock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         view = AdminControlPanelContainerView("clear_stock")
@@ -1819,9 +1834,9 @@ async def duyuru_test_command(interaction: discord.Interaction):
     await interaction.followup.send(f"✅ Test duyurusu başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
 
 
-@bot.tree.command(name="hatirlatici-test", description="📬 Hakkı açılan üyelere DM hatırlatıcı döngüsünü anında tetikler (Admin)")
+@bot.tree.command(name="hatirlatici", description="📬 Hakkı açılan üyelere DM hatırlatıcı döngüsünü anında tetikler (Admin)")
 @app_commands.default_permissions(administrator=True)
-async def hatirlatici_test_command(interaction: discord.Interaction):
+async def hatirlatici_command(interaction: discord.Interaction):
     if not is_admin_user(interaction.user):
         await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
@@ -1833,12 +1848,18 @@ async def hatirlatici_test_command(interaction: discord.Interaction):
 
     eligible = db.get_eligible_reminder_users()
     await interaction.followup.send(
-        f"📬 **DM Hatırlatıcı Testi Başlatıldı!**\n"
+        f"📬 **DM Hatırlatıcı Başlatıldı!**\n"
         f"• Şu an bekleme süresi dolup hatırlatma alabilecek üye sayısı: **{len(eligible)} kişi**\n"
-        f"• Arka planda güvenli aralıklarla (3-5 sn) gönderim sağlanıyor.",
+        f"• Arka planda güvenli aralıklarla (3-5 sn) özelden hatırlatma mesajları iletiliyor.",
         ephemeral=True
     )
     asyncio.create_task(scheduled_dm_reminder_task())
+
+
+@bot.tree.command(name="hatirlatici-test", description="📬 Hakkı açılan üyelere DM hatırlatıcı döngüsünü anında tetikler (Admin)")
+@app_commands.default_permissions(administrator=True)
+async def hatirlatici_test_command(interaction: discord.Interaction):
+    await hatirlatici_command(interaction)
 
 
 @bot.tree.command(name="ayarlar", description="⚙️ Bot ayarlarını değiştirir (Limitler, Anti-Alt yaş sınırı vb.)")
