@@ -157,6 +157,16 @@ def format_seconds(seconds: float) -> str:
     return " ".join(parts)
 
 async def log_claim(guild: discord.Guild, user: discord.User, service: dict, account_data: str, is_vip: bool):
+    # Record to internal database logs
+    db.add_event_log(
+        event_type="CLAIM",
+        user_id=user.id,
+        username=user.name,
+        title=f"{service.get('name', 'Bilinmeyen Servis')} Teslim Edildi",
+        details=f"Hesap: `{account_data[:30]}...`" if len(account_data) > 30 else f"Hesap: `{account_data}`",
+        service_id=service.get("id", "")
+    )
+
     config = db.get_config()
     channel_id = config.get("log_channel_id", 0) or os.getenv("LOG_CHANNEL_ID", 0)
     if not channel_id:
@@ -471,6 +481,41 @@ class AdminPanelView(discord.ui.View):
     async def reset_limit_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         view = AdminControlPanelContainerView("reset_user")
         await interaction.response.send_message("👇 Bekleme süresini sıfırlamak istediğiniz üyeyi seçin:", view=view, ephemeral=True)
+
+    @discord.ui.button(label="📜 Canlı İşlem Logları", style=discord.ButtonStyle.primary, emoji="📜")
+    async def view_logs_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+        logs = db.get_recent_logs(limit=15)
+        
+        embed = discord.Embed(
+            title="📜 LeaksTr Canlı Bot İşlem Logları (Admin)",
+            description="Botun son gerçekleştirdiği stok gönderimleri ve sistem işlemleri:",
+            color=discord.Color.blue(),
+            timestamp=discord.utils.utcnow()
+        )
+
+        if not logs:
+            embed.description = "Henüz kaydedilmiş bir işlem logu bulunmuyor."
+        else:
+            log_text = ""
+            for l in logs:
+                ts = int(l.get("timestamp", time.time()))
+                e_type = l.get("event_type", "LOG")
+                u_name = l.get("username", "Bilinmeyen")
+                u_id = l.get("user_id", "")
+                title = l.get("title", "")
+                details = l.get("details", "")
+
+                icon = "📥" if e_type == "CLAIM" else ("🎰" if e_type == "WHEEL" else ("⭐" if e_type == "VIP" else "🔔"))
+                log_text += f"{icon} <t:{ts}:R> • <@{u_id}> (`{u_name}`)\n└ **{title}** | {details}\n\n"
+
+            embed.description = log_text[:4000]
+
+        embed.set_footer(text="Sadece Yöneticiler Görüntüleyebilir • Gerçek Zamanlı Veri")
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="📢 Stok Duyurusu", style=discord.ButtonStyle.primary, emoji="🚀")
     async def announce_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -1849,6 +1894,48 @@ async def duyuru_test_command(interaction: discord.Interaction):
 
     await channel.send(content="@everyone", embed=embed, view=MainPanelView())
     await interaction.followup.send(f"✅ Test duyurusu başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
+
+
+@bot.tree.command(name="loglar", description="📜 Son stok teslimatlarını ve bot işlem kayıtlarını listeler (Admin)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(limit="Kaç adet son log gösterilsin? (Varsayılan: 15)")
+async def loglar_command(interaction: discord.Interaction, limit: int = 15):
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
+
+    if not is_admin_user(interaction.user):
+        await interaction.followup.send("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    logs = db.get_recent_logs(limit=limit)
+    embed = discord.Embed(
+        title="📜 LeaksTr Canlı Bot İşlem Logları (Admin)",
+        description="Botun son gerçekleştirdiği stok teslimatları ve işlem kayıtları:",
+        color=discord.Color.blue(),
+        timestamp=discord.utils.utcnow()
+    )
+
+    if not logs:
+        embed.description = "Henüz kaydedilmiş bir işlem logu bulunmuyor."
+    else:
+        log_text = ""
+        for l in logs:
+            ts = int(l.get("timestamp", time.time()))
+            e_type = l.get("event_type", "LOG")
+            u_name = l.get("username", "Bilinmeyen")
+            u_id = l.get("user_id", "")
+            title = l.get("title", "")
+            details = l.get("details", "")
+
+            icon = "📥" if e_type == "CLAIM" else ("🎰" if e_type == "WHEEL" else ("⭐" if e_type == "VIP" else "🔔"))
+            log_text += f"{icon} <t:{ts}:R> • <@{u_id}> (`{u_name}`)\n└ **{title}** | {details}\n\n"
+
+        embed.description = log_text[:4000]
+
+    embed.set_footer(text="Sadece Yöneticiler Görüntüleyebilir • Gerçek Zamanlı Veri")
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="hatirlatici", description="📬 Hakkı açılan üyelere DM hatırlatıcı döngüsünü anında tetikler (Admin)")

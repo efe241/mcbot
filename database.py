@@ -14,6 +14,7 @@ STOCKS_FILE = os.path.join(DATA_DIR, "stocks.json")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 KEYS_FILE = os.path.join(DATA_DIR, "keys.json")
+LOGS_FILE = os.path.join(DATA_DIR, "logs.json")
 
 # Re-entrant Lock
 _lock = threading.RLock()
@@ -745,6 +746,35 @@ class DatabaseManager:
             key_data["used_at"] = time.time()
             _write_json(KEYS_FILE, keys)
             return True, msg
+
+    # EVENT LOGS SYSTEM (ADMIN ONLY)
+    def add_event_log(self, event_type: str, user_id: int, username: str, title: str, details: str, service_id: str = ""):
+        with _lock:
+            logs = _read_json(LOGS_FILE, [])
+            log_entry = {
+                "id": len(logs) + 1,
+                "event_type": event_type, # 'CLAIM', 'WHEEL', 'VIP', 'RESTOCK', 'REMINDER', 'KEY'
+                "user_id": str(user_id),
+                "username": username,
+                "title": title,
+                "details": details,
+                "service_id": service_id,
+                "timestamp": time.time()
+            }
+            logs.insert(0, log_entry)
+            # Keep latest 500 logs to prevent file bloat
+            if len(logs) > 500:
+                logs = logs[:500]
+            _write_json(LOGS_FILE, logs)
+            return log_entry
+
+    def get_recent_logs(self, limit: int = 15, event_type: str = None):
+        with _lock:
+            logs = _read_json(LOGS_FILE, [])
+            if event_type:
+                filtered = [l for l in logs if l.get("event_type") == event_type]
+                return filtered[:limit]
+            return logs[:limit]
 
     # LEADERBOARD
     def get_leaderboard(self, limit=10):
