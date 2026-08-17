@@ -1190,9 +1190,9 @@ class MainPanelView(discord.ui.View):
         # RECORD SPIN
         db.record_wheel_spin(user.id)
 
-        # ROLL OUTCOME (40% Claim, 30% VIP, 20% Steam, 10% Miss)
+        # ROLL OUTCOME (45% Ekstra Stok, 5% Nadir VIP, 25% Steam, 25% Pas)
         outcomes = ["claim", "vip", "steam", "miss"]
-        weights = [40, 30, 20, 10]
+        weights = [45, 5, 25, 25]
         won_type = random.choices(outcomes, weights=weights, k=1)[0]
 
         if won_type == "claim":
