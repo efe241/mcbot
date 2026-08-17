@@ -3,12 +3,17 @@ import sys
 import time
 import asyncio
 import random
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta, time as dt_time
 import discord
 from discord import app_commands
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 from aiohttp import web
+
+# Turkey Timezone (UTC+3)
+TZ_TURKEY = timezone(timedelta(hours=3))
+TIME_1330 = dt_time(hour=13, minute=30, tzinfo=TZ_TURKEY)
+TIME_0130 = dt_time(hour=1, minute=30, tzinfo=TZ_TURKEY)
 
 # Fix Windows console UTF-8 printing
 if hasattr(sys.stdout, 'reconfigure'):
@@ -1197,11 +1202,60 @@ async def perform_sync_cleanly(guild_obj=None):
         return len(synced)
 
 
+# --- AUTOMATIC RESTOCK ANNOUNCEMENT TASK (EVERY DAY AT 13:30 & 01:30 TSİ) ---
+@tasks.loop(time=[TIME_1330, TIME_0130])
+async def scheduled_restock_announcement():
+    try:
+        config = db.get_config()
+        channel_id = config.get("announcement_channel_id", "1538560333545738281")
+        if not channel_id:
+            return
+        
+        channel = bot.get_channel(int(channel_id))
+        if not channel:
+            try:
+                channel = await bot.fetch_channel(int(channel_id))
+            except Exception:
+                channel = None
+
+        if not channel:
+            print(f"[DUYURU HATA] Otomatik duyuru kanalı ({channel_id}) bulunamadı!")
+            return
+
+        embed = discord.Embed(
+            title="🔥 STOKLAR YENİLENDİ & GÜNCELLENDİ! 🎉",
+            description=(
+                "Değerli LeaksTr üyeleri,\n\n"
+                "⚡ **Tüm Free ve VIP stoklarımız başarıyla güncellenmiştir!**\n"
+                "Aşağıdaki butonları kullanarak hemen dilediğiniz hesabı veya servisi alabilirsiniz.\n\n"
+                "🎁 **FREE Servisler:** Netflix, Minecraft, Hotmail, TOD TV, IPTV ve Sınırsız Steam Oyunları!\n"
+                "⭐ **VIP Servisler:** Netflix 4K, Minecraft Full Access, Prime Video Cookie, Steam VIP, TOD TV VIP, Twitch VIP, SimMarket VIP!\n"
+                "🎰 **Günlük Şans Çarkı:** 24 saatte bir çevir, sürpriz VIP veya ekstra stok kazan!\n\n"
+                "👇 **Hemen aşağıdaki butonlara tıklayarak hesabınızı teslim alın!**"
+            ),
+            color=discord.Color.gold(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.set_footer(text="LeaksTr Otomatik Stok Bildirim Sistemi • Her Gün 13:30 & 01:30")
+        if channel.guild and channel.guild.icon:
+            embed.set_thumbnail(url=channel.guild.icon.url)
+
+        await channel.send(content="@everyone", embed=embed, view=MainPanelView())
+        print(f"📢 [OTO DUYURU OK] 13:30 / 01:30 duyurusu başarıyla gönderildi -> #{channel.name}")
+    except Exception as e:
+        print(f"⚠️ [OTO DUYURU HATA]: {e}")
+
+
 # --- BOT EVENTS & INVITE TRACKER & MESSAGE TRACKER ---
 @bot.event
 async def on_ready():
     print(f"Bot Giriş Yaptı: {bot.user.name} ({bot.user.id})")
     asyncio.create_task(start_web_server())
+
+    # Start Scheduled Announcement Loop
+    if not scheduled_restock_announcement.is_running():
+        scheduled_restock_announcement.start()
+        print("⏰ Otomatik Stok Duyurusu Zamanlayıcısı Başlatıldı! (Her Gün 13:30 & 01:30 TSİ)")
 
     bot.add_view(MainPanelView())
     bot.add_view(CloseTicketView())
@@ -1660,6 +1714,53 @@ async def hak_sifirla_command(interaction: discord.Interaction, kullanici: disco
     await interaction.response.send_message(f"✅ {kullanici.mention} kullanıcısının günlük stok alma hakkı sıfırlandı!", ephemeral=True)
 
 
+@bot.tree.command(name="duyuru-test", description="📢 Otomatik 13:30/01:30 stok duyurusunu anında manuel olarak test eder (Admin)")
+@app_commands.default_permissions(administrator=True)
+async def duyuru_test_command(interaction: discord.Interaction):
+    if not is_admin_user(interaction.user):
+        await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
+
+    config = db.get_config()
+    channel_id = config.get("announcement_channel_id", "1538560333545738281")
+    channel = bot.get_channel(int(channel_id))
+    if not channel:
+        try:
+            channel = await bot.fetch_channel(int(channel_id))
+        except Exception:
+            channel = None
+
+    if not channel:
+        await interaction.followup.send(f"❌ Duyuru kanalı (`{channel_id}`) bulunamadı!", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🔥 STOKLAR YENİLENDİ & GÜNCELLENDİ! 🎉",
+        description=(
+            "Değerli LeaksTr üyeleri,\n\n"
+            "⚡ **Tüm Free ve VIP stoklarımız başarıyla güncellenmiştir!**\n"
+            "Aşağıdaki butonları kullanarak hemen dilediğiniz hesabı veya servisi alabilirsiniz.\n\n"
+            "🎁 **FREE Servisler:** Netflix, Minecraft, Hotmail, TOD TV, IPTV ve Sınırsız Steam Oyunları!\n"
+            "⭐ **VIP Servisler:** Netflix 4K, Minecraft Full Access, Prime Video Cookie, Steam VIP, TOD TV VIP, Twitch VIP, SimMarket VIP!\n"
+            "🎰 **Günlük Şans Çarkı:** 24 saatte bir çevir, sürpriz VIP veya ekstra stok kazan!\n\n"
+            "👇 **Hemen aşağıdaki butonlara tıklayarak hesabınızı teslim alın!**"
+        ),
+        color=discord.Color.gold(),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_footer(text="LeaksTr Otomatik Stok Bildirim Sistemi • Her Gün 13:30 & 01:30")
+    if channel.guild and channel.guild.icon:
+        embed.set_thumbnail(url=channel.guild.icon.url)
+
+    await channel.send(content="@everyone", embed=embed, view=MainPanelView())
+    await interaction.followup.send(f"✅ Test duyurusu başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
+
+
 @bot.tree.command(name="ayarlar", description="⚙️ Bot ayarlarını değiştirir (Limitler, Anti-Alt yaş sınırı vb.)")
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
@@ -1671,7 +1772,8 @@ async def hak_sifirla_command(interaction: discord.Interaction, kullanici: disco
     min_hesap_yasi="Anti-Alt için minimum hesap yaşı (gün, Varsayılan: 7)",
     davet_vip_hedef="Kaç davette otomatik VIP verilsin? (Varsayılan: 5)",
     vip_rol="VIP rolü",
-    log_kanali="Stok teslimat loglarının gönderileceği kanal"
+    log_kanali="Stok teslimat loglarının gönderileceği kanal",
+    duyuru_kanali="13:30 ve 01:30 oto duyuru kanalı"
 )
 async def ayarlar_command(
     interaction: discord.Interaction,
@@ -1683,7 +1785,8 @@ async def ayarlar_command(
     min_hesap_yasi: int = None,
     davet_vip_hedef: int = None,
     vip_rol: discord.Role = None,
-    log_kanali: discord.TextChannel = None
+    log_kanali: discord.TextChannel = None,
+    duyuru_kanali: discord.TextChannel = None
 ):
     if not is_admin_user(interaction.user):
         await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
@@ -1717,6 +1820,9 @@ async def ayarlar_command(
     if log_kanali is not None:
         db.update_config("log_channel_id", log_kanali.id)
         changes.append(f"📜 Log Kanalı: {log_kanali.mention}")
+    if duyuru_kanali is not None:
+        db.update_config("announcement_channel_id", str(duyuru_kanali.id))
+        changes.append(f"📢 Oto Duyuru Kanalı: {duyuru_kanali.mention}")
 
     if not changes:
         cfg = db.get_config()
@@ -1729,6 +1835,7 @@ async def ayarlar_command(
         embed.add_field(name="🛡️ Anti-Alt Min Yaş", value=f"{cfg.get('min_account_age_days', 7)} gün", inline=True)
         embed.add_field(name="👥 VIP Davet Hedefi", value=f"{cfg.get('invites_for_vip', 5)} davet", inline=True)
         embed.add_field(name="📜 Log Kanal ID", value=f"`{cfg.get('log_channel_id', 0)}`", inline=True)
+        embed.add_field(name="📢 Oto Duyuru Kanal ID", value=f"`{cfg.get('announcement_channel_id', '1538560333545738281')}`", inline=True)
         await interaction.response.send_message(embed=embed, ephemeral=True)
         return
 

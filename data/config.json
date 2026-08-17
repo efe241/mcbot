@@ -5,5 +5,6 @@
   "admin_role_id": 0,
   "vip_role_id": 0,
   "log_channel_id": 0,
-  "required_status": "LeaksTr"
+  "required_status": "LeaksTr",
+  "announcement_channel_id": "1538560333545738281"
 }

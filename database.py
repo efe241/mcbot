@@ -26,6 +26,7 @@ DEFAULT_CONFIG = {
     "admin_role_id": 0,
     "vip_role_id": 0,
     "log_channel_id": 0,
+    "announcement_channel_id": "1538560333545738281",
     "required_status": "LeaksTr",
     "min_account_age_days": 7,
     "invites_for_vip": 5
