@@ -223,10 +223,10 @@ DEFAULT_SERVICES = [
     },
     {
         "id": "nitro_promo",
-        "name": "Discord Nitro Promo (Ticket)",
+        "name": "👑 Discord Nitro Promo [SADECE VIP]",
         "category": "vip",
-        "emoji": "🚀",
-        "description": "VIP Özel Discord Nitro Promo (Ticket)",
+        "emoji": "👑",
+        "description": "⛔ FREE DEĞİLDİR! Sadece VIP ve Booster Özel Ticket",
         "requires_ticket": True
     },
     {

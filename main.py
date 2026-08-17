@@ -1086,7 +1086,12 @@ class MainPanelView(discord.ui.View):
         view = CategorySelectView(category="free", is_vip=False)
         embed = discord.Embed(
             title="🎁 Free (Ücretsiz) Servisler",
-            description="Aşağıdaki açılır menüden almak istediğiniz ücretsiz servisi seçin:",
+            description=(
+                "Aşağıdaki açılır menüden almak istediğiniz ücretsiz servisi seçin:\n\n"
+                "⛔ **ÖNEMLİ BİLGİLENDİRME:**\n"
+                "• **Discord Nitro Promo, Netflix 4K vb. servisler KESİNLİKLE FREE DEĞİLDİR!**\n"
+                "• Nitro Promo ve özel içeriklere yalnızca **`⭐ VIP Servisler`** menüsünden ulaşabilirsiniz."
+            ),
             color=discord.Color.blue()
         )
         await safe_respond(interaction, embed=embed, view=view, ephemeral=True)
@@ -2182,14 +2187,14 @@ async def create_panel_embed_and_send(channel: discord.TextChannel, guild: disco
             "• **🗣️ Şart 2 (Chat):** Sunucu kanallarından birine **en az 1 mesaj** yazmış olmalısınız.\n"
             "• **🎁 FREE Servisler:** Her 24 saatte 1 adet ücretsiz hesap alabilirsiniz.\n"
             f"• **⭐ VIP Servisler:** VIP üyeler için günlük **{vip_limit} adet** yüksek kaliteli stok alma hakkı!\n"
+            "• **👑 DISCORD NITRO PROMO:** SADECE VIP ve Booster üyelere özeldir, FREE DEĞİLDİR!\n"
             "• **⚠️ Hatalı Stok Bildir:** Hatalı hesaplar için ekran görüntülü anında telafi kanalı açılır!\n"
             "• **📺 IPTV Servisleri:** Canlı IPTV M3U8 ve Embed yayın linkleri.\n"
             "• **🚀 Nitro Booster Perks:** Nitro basanlara özel 3 adet günlük alma hakkı!\n"
             "• **🎰 Günlük Şans Çarkı:** Her gün 1 kere çevir, sürpriz VIP veya ekstra stok kazan!\n"
             "• **👥 Davet Sistemi:** 5 Arkadaşını davet et, OTOMATİK 1 Günlük VIP ol! (Günde 2 stok hakkı)\n"
-            "• **🔍 MailChecker Tool:** Seçildiğinde özel Ticket kanalı açılır ve yetkili URL iletir.\n"
-            "• **🎮 Steam Servisleri:** Sınırsız stok! Her alıma rastgele oyunlu hesap verilir.\n"
-            "• **📜 Sorumluluk Reddi:** Tüm kullanım sorumluluğu alıcıya aittir.\n\n"
+            "• **🎟️ Kupon Kullan:** Promosyon ve hediye kodlarınızı girerek anında ödül kazanın!\n"
+            "• **🎮 Steam Servisleri:** Sınırsız stok! Her alıma rastgele oyunlu hesap verilir.\n\n"
             "⚠️ *Hesaplar ve yayın linkleri doğrudan **DM (Direkt Mesaj)** kutunuza iletilmektedir.*"
         ),
         color=discord.Color.dark_theme()
