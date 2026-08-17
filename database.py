@@ -646,6 +646,44 @@ class DatabaseManager:
                 users[user_str]["last_wheel_spin"] = time.time()
             _write_json(USERS_FILE, users)
 
+    # REMINDER SYSTEM (COOLDOWN REFRESHED USERS)
+    def get_eligible_reminder_users(self):
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            eligible = []
+            now = time.time()
+            config = self.get_config()
+            cooldown_seconds = config.get("cooldown_hours", 24) * 3600
+
+            for u_id_str, u_data in users.items():
+                if u_data.get("total_claims", 0) <= 0:
+                    continue
+                
+                # Check last reminder timestamp (minimum 24 hours between reminders)
+                last_reminder = u_data.get("last_reminder_sent", 0)
+                if now - last_reminder < (24 * 3600):
+                    continue
+
+                # Check if user has available claim limit right now
+                daily_claims = u_data.get("daily_claims", [])
+                recent_claims = [t for t in daily_claims if now - t < cooldown_seconds]
+                
+                is_vip = u_data.get("is_vip", False)
+                daily_limit = config.get("vip_daily_limit", 2) if is_vip else config.get("free_daily_limit", 1)
+
+                if len(recent_claims) < daily_limit:
+                    eligible.append(int(u_id_str))
+
+            return eligible
+
+    def record_reminder_sent(self, user_id):
+        user_str = str(user_id)
+        with _lock:
+            users = _read_json(USERS_FILE, {})
+            if user_str in users:
+                users[user_str]["last_reminder_sent"] = time.time()
+                _write_json(USERS_FILE, users)
+
     # PROMO KEYS / VOUCHER SYSTEM
     def create_promo_keys(self, reward_type: str, reward_value: str, count: int = 1):
         with _lock:

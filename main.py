@@ -1246,6 +1246,59 @@ async def scheduled_restock_announcement():
         print(f"⚠️ [OTO DUYURU HATA]: {e}")
 
 
+# --- AUTOMATIC DM REMINDER TASK (FOR ACTIVE USERS WHOSE COOLDOWN RESET) ---
+@tasks.loop(minutes=75)
+async def scheduled_dm_reminder_task():
+    try:
+        eligible_users = db.get_eligible_reminder_users()
+        if not eligible_users:
+            return
+
+        # Randomize list order
+        random.shuffle(eligible_users)
+        
+        # Take a safe batch of up to 5-10 users per run to respect Discord rate limits
+        batch = eligible_users[:8]
+        
+        sent_count = 0
+        for user_id in batch:
+            try:
+                user = bot.get_user(user_id)
+                if not user:
+                    user = await bot.fetch_user(user_id)
+
+                if user and not user.bot:
+                    embed = discord.Embed(
+                        title="🔔 Yeni Stok Alma Hakkınız Açıldı! 🎉",
+                        description=(
+                            f"Merhaba {user.name}!\n\n"
+                            "⚡ **LeaksTr** üzerindeki günlük bekleme süreniz doldu ve **yeni stok alma hakkınız hazır!**\n\n"
+                            "🎁 Sunucumuzdaki Generator Paneline giderek dilediğiniz **Free** veya **VIP** servisten (Netflix, Minecraft, Steam vb.) yeni hesabınızı hemen alabilirsiniz.\n\n"
+                            "👉 *Şans Çarkını çevirmeyi de unutmayın!*"
+                        ),
+                        color=discord.Color.green(),
+                        timestamp=discord.utils.utcnow()
+                    )
+                    embed.set_footer(text="LeaksTr Otomatik Hatırlatıcı • Bol şanslar dileriz!")
+                    
+                    await user.send(embed=embed)
+                    db.record_reminder_sent(user_id)
+                    sent_count += 1
+                    
+                    # Safe natural delay between DMs (3-5 seconds)
+                    await asyncio.sleep(random.uniform(3.0, 5.0))
+            except (discord.Forbidden, discord.HTTPException):
+                # DM closed or blocked, record so we don't retry constantly
+                db.record_reminder_sent(user_id)
+            except Exception as e:
+                print(f"Hatırlatıcı DM hatası ({user_id}): {e}")
+
+        if sent_count > 0:
+            print(f"📬 [OTO HATIRLATICI] {sent_count} adet üyeye stok yenilenme DM hatırlatması başarıyla iletildi.")
+    except Exception as e:
+        print(f"⚠️ [OTO HATIRLATICI HATA]: {e}")
+
+
 # --- BOT EVENTS & INVITE TRACKER & MESSAGE TRACKER ---
 @bot.event
 async def on_ready():
@@ -1256,6 +1309,11 @@ async def on_ready():
     if not scheduled_restock_announcement.is_running():
         scheduled_restock_announcement.start()
         print("⏰ Otomatik Stok Duyurusu Zamanlayıcısı Başlatıldı! (Her Gün 13:30 & 01:30 TSİ)")
+
+    # Start Scheduled DM Reminder Loop
+    if not scheduled_dm_reminder_task.is_running():
+        scheduled_dm_reminder_task.start()
+        print("📬 Otomatik DM Hatırlatıcı Zamanlayıcısı Başlatıldı! (Her 75 dakikada bir kontrol)")
 
     bot.add_view(MainPanelView())
     bot.add_view(CloseTicketView())
@@ -1759,6 +1817,28 @@ async def duyuru_test_command(interaction: discord.Interaction):
 
     await channel.send(content="@everyone", embed=embed, view=MainPanelView())
     await interaction.followup.send(f"✅ Test duyurusu başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
+
+
+@bot.tree.command(name="hatirlatici-test", description="📬 Hakkı açılan üyelere DM hatırlatıcı döngüsünü anında tetikler (Admin)")
+@app_commands.default_permissions(administrator=True)
+async def hatirlatici_test_command(interaction: discord.Interaction):
+    if not is_admin_user(interaction.user):
+        await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
+
+    eligible = db.get_eligible_reminder_users()
+    await interaction.followup.send(
+        f"📬 **DM Hatırlatıcı Testi Başlatıldı!**\n"
+        f"• Şu an bekleme süresi dolup hatırlatma alabilecek üye sayısı: **{len(eligible)} kişi**\n"
+        f"• Arka planda güvenli aralıklarla (3-5 sn) gönderim sağlanıyor.",
+        ephemeral=True
+    )
+    asyncio.create_task(scheduled_dm_reminder_task())
 
 
 @bot.tree.command(name="ayarlar", description="⚙️ Bot ayarlarını değiştirir (Limitler, Anti-Alt yaş sınırı vb.)")
