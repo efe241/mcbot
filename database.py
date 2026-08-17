@@ -726,69 +726,112 @@ class DatabaseManager:
             result.sort(key=lambda x: (x["remaining_rights"], x["total_claims"]), reverse=True)
             return result
 
-    # PROMO KEYS / VOUCHER SYSTEM
-    def create_promo_keys(self, reward_type: str, reward_value: str, count: int = 1):
+    # PROMO KEYS & ADVANCED COUPON SYSTEM
+    def create_coupon(self, code: str, reward_type: str, reward_value: str = "24", max_uses: int = 1, specific_service: str = ""):
+        code = code.strip().upper()
         with _lock:
             keys = _read_json(KEYS_FILE, {})
-            created = []
-            for _ in range(count):
-                random_hex = os.urandom(4).hex().upper()
-                key_code = f"LEAK-{random_hex[:4]}-{random_hex[4:]}"
-                keys[key_code] = {
-                    "reward_type": reward_type, # 'vip', 'claim', 'steam'
-                    "reward_value": reward_value,
-                    "used": False,
-                    "used_by": None,
-                    "used_at": 0
-                }
-                created.append(key_code)
+            keys[code] = {
+                "code": code,
+                "reward_type": reward_type, # 'vip', 'claim', 'steam', 'service'
+                "reward_value": reward_value,
+                "max_uses": max_uses,
+                "used_count": 0,
+                "used_by": [], # list of user_id strings
+                "specific_service": specific_service,
+                "created_at": time.time()
+            }
             _write_json(KEYS_FILE, keys)
-            return created
+            return keys[code]
 
-    def redeem_promo_key(self, user_id, key_code: str):
-        key_code = key_code.strip().upper()
+    def get_all_coupons(self):
+        with _lock:
+            return _read_json(KEYS_FILE, {})
+
+    def delete_coupon(self, code: str):
+        code = code.strip().upper()
         with _lock:
             keys = _read_json(KEYS_FILE, {})
-            if key_code not in keys:
-                return False, "❌ Geçersiz veya bulunamayan promo kodu!"
-            key_data = keys[key_code]
-            if key_data.get("used"):
-                return False, "❌ Bu promo kodu daha önce kullanılmış!"
+            if code in keys:
+                del keys[code]
+                _write_json(KEYS_FILE, keys)
+                return True
+            return False
 
-            reward_type = key_data.get("reward_type")
-            
+    def redeem_coupon(self, user_id, username: str, code: str):
+        code = code.strip().upper()
+        user_str = str(user_id)
+        with _lock:
+            keys = _read_json(KEYS_FILE, {})
+            if code not in keys:
+                return False, "❌ **Geçersiz Kupon Kodu!** Lütfen kodu doğru yazdığınızdan emin olun.", None
+
+            coupon = keys[code]
+            used_by = coupon.get("used_by", [])
+            max_uses = coupon.get("max_uses", 1)
+            used_count = coupon.get("used_count", len(used_by))
+
+            if user_str in used_by:
+                return False, "⚠️ **Bu kuponu zaten daha önce kullandınız!** Her üye bir kupondan yalnızca 1 kez faydalanabilir.", None
+
+            if used_count >= max_uses:
+                return False, "❌ **Kuponun Kullanım Kotası Doldu!** Bu kupon belirlenen maksimum kişi sayısına ulaştı.", None
+
+            reward_type = coupon.get("reward_type", "claim")
+            reward_value = coupon.get("reward_value", "24")
+            extra_account = None
+
             if reward_type == "vip":
-                raw_val = str(key_data.get("reward_value", 24)).lower().strip()
                 try:
-                    if "gün" in raw_val:
-                        num = int(raw_val.replace("gün", "").strip())
-                        hours = num * 24
-                    elif "saat" in raw_val:
-                        hours = int(raw_val.replace("saat", "").strip())
-                    else:
-                        hours = int(raw_val)
+                    hours = int(reward_value)
                 except Exception:
                     hours = 24
-
                 self.set_user_vip(user_id, True, duration_hours=hours)
-                msg = f"⭐ Tebrikler! **{hours} Saatlik VIP Üyelik** kazandınız!"
+                days_txt = f"{hours // 24} Günlük" if hours >= 24 and hours % 24 == 0 else f"{hours} Saatlik"
+                msg = f"⭐ Tebrikler! Hesabınıza **{days_txt} VIP Üyelik** tanımlandı! Hemen VIP servislerden stok alabilirsiniz. 🚀"
+
             elif reward_type == "claim":
                 self.reset_user_cooldown(user_id)
-                msg = "🎁 Tebrikler! **1 Ekstra Stok Hakkı** kazandınız (Bekleme süreniz sıfırlandı)!"
+                msg = "🎁 Tebrikler! **+1 Ekstra Stok Hakkı** kazandınız (Günlük bekleme süreniz sıfırlandı)!"
+
             elif reward_type == "steam":
                 acc = self.get_stock_account("steam_free")
                 if acc:
-                    msg = f"🎮 Tebrikler! **Steam Oyun Hesabı** kazandınız:\n```\n{acc}\n```"
+                    extra_account = acc
+                    msg = f"🎮 Tebrikler! **Oyunlu Steam Hesabı** kazandınız!\n\n**🔑 Hesap Bilgisi:**\n```\n{acc}\n```"
                 else:
-                    msg = "🎮 Tebrikler! Steam stokları yenilendiğinde hesabınız teslim edilecektir."
-            else:
-                msg = "✅ Kod başarıyla kullanıldı!"
+                    msg = "🎮 Tebrikler! Steam hesabınız stoklar yenilendiğinde teslim edilecektir."
 
-            key_data["used"] = True
-            key_data["used_by"] = str(user_id)
-            key_data["used_at"] = time.time()
+            elif reward_type == "service":
+                serv_id = coupon.get("specific_service", "netflix_free")
+                serv = self.get_service(serv_id)
+                serv_name = serv["name"] if serv else serv_id
+                acc = self.get_stock_account(serv_id)
+                if acc:
+                    extra_account = acc
+                    msg = f"🎉 Tebrikler! **{serv_name}** hesabınız hazır!\n\n**🔑 Hesap / Link Bilgisi:**\n```\n{acc}\n```"
+                else:
+                    msg = f"🎉 Tebrikler! **{serv_name}** hakkı kazandınız. (Stok yenilendiğinde teslim edilecektir)"
+            else:
+                msg = "✅ Kupon başarıyla tanımlandı!"
+
+            # Record usage
+            used_by.append(user_str)
+            coupon["used_by"] = used_by
+            coupon["used_count"] = len(used_by)
             _write_json(KEYS_FILE, keys)
-            return True, msg
+
+            # Log event
+            self.add_event_log(
+                event_type="COUPON",
+                user_id=user_id,
+                username=username,
+                title=f"Kupon Kodu Kullandı: {code}",
+                details=f"Ödül: {reward_type} | Kalan Kota: {max_uses - len(used_by)}/{max_uses}",
+                service_id=code
+            )
+
+            return True, msg, extra_account
 
     # EVENT LOGS SYSTEM (ADMIN ONLY)
     def add_event_log(self, event_type: str, user_id: int, username: str, title: str, details: str, service_id: str = ""):

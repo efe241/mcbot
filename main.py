@@ -1029,6 +1029,48 @@ class CategorySelectView(discord.ui.View):
         self.add_item(ServiceSelect(category, is_vip))
 
 
+class RedeemCouponModal(discord.ui.Modal, title="🎟️ Promosyon / Kupon Kodu Kullan"):
+    coupon_code = discord.ui.TextInput(
+        label="Kupon Kodunuz",
+        placeholder="Örn: LEAK-VIP24 veya HEDIYE2026",
+        min_length=3,
+        max_length=40,
+        required=True
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        code_str = self.coupon_code.value.strip().upper()
+        success, message, extra_acc = db.redeem_coupon(interaction.user.id, interaction.user.name, code_str)
+
+        if success:
+            embed = discord.Embed(
+                title="🎉 KUPON KODU KABUL EDİLDİ!",
+                description=message,
+                color=discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed.set_footer(text=f"Kullanıcı: {interaction.user.name} • LeaksTr Kupon Sistemi")
+            await safe_respond(interaction, embed=embed, ephemeral=True)
+
+            if extra_acc:
+                try:
+                    dm_emb = discord.Embed(
+                        title="🎁 Kupon Ödülünüz Hazır!",
+                        description=f"Kullandığınız kupon kodu (`{code_str}`) ile tanımlanan hesabınız:\n```\n{extra_acc}\n```",
+                        color=discord.Color.green()
+                    )
+                    await interaction.user.send(embed=dm_emb)
+                except Exception:
+                    pass
+        else:
+            embed = discord.Embed(
+                title="⚠️ Kupon Kullanılamadı",
+                description=message,
+                color=discord.Color.red()
+            )
+            await safe_respond(interaction, embed=embed, ephemeral=True)
+
+
 class MainPanelView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -1047,6 +1089,43 @@ class MainPanelView(discord.ui.View):
             color=discord.Color.blue()
         )
         await safe_respond(interaction, embed=embed, view=view, ephemeral=True)
+
+    @discord.ui.button(
+        label="VIP Servisler",
+        style=discord.ButtonStyle.success,
+        emoji="⭐",
+        custom_id="btn_vip_services"
+    )
+    async def vip_services_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        member = interaction.guild.get_member(interaction.user.id) if interaction.guild else None
+        user_is_vip = is_vip_user(member) if member else False
+
+        if not user_is_vip:
+            embed = discord.Embed(
+                title="🔒 VIP Servis Erişimi Engellendi",
+                description="Bu servis alanı **sadece VIP ve Server Booster üyeler** içindir!\nVIP üyelik almak veya sunucuya Nitro Boost basmak için yöneticilerle iletişime geçin.",
+                color=discord.Color.red()
+            )
+            await safe_respond(interaction, embed=embed, ephemeral=True)
+            return
+
+        view = CategorySelectView(category="vip", is_vip=True)
+        embed = discord.Embed(
+            title="⭐ VIP (Ayrıcalıklı) Servisler",
+            description="Aşağıdaki açılır menüden almak istediğiniz VIP servisi seçin:",
+            color=discord.Color.gold()
+        )
+        await safe_respond(interaction, embed=embed, view=view, ephemeral=True)
+
+    @discord.ui.button(
+        label="Kupon Kullan",
+        style=discord.ButtonStyle.success,
+        emoji="🎟️",
+        custom_id="btn_redeem_coupon"
+    )
+    async def redeem_coupon_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        modal = RedeemCouponModal()
+        await interaction.response.send_modal(modal)
 
     @discord.ui.button(
         label="VIP Servisler",
@@ -2371,6 +2450,107 @@ async def hak_sifirla_command(interaction: discord.Interaction, kullanici: disco
 
     db.reset_user_cooldown(kullanici.id)
     await interaction.response.send_message(f"✅ {kullanici.mention} kullanıcısının günlük stok alma hakkı sıfırlandı!", ephemeral=True)
+
+
+@bot.tree.command(name="kupon-olustur", description="🎟️ Yeni bir promosyon / kupon kodu oluşturur (Admin)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(
+    kod="Oluşturulacak kupon kodu (Örn: LEAK-VIP veya HEDIYE2026)",
+    odul_turu="Kuponun vereceği ödül türü",
+    kullanim_limiti="Kuponu kaç farklı üye kullanabilir? (Varsayılan: 1)",
+    vip_saati="VIP ödülü seçildiyse kaç saatlik VIP verilsin? (Varsayılan: 24)",
+    servis_id="Özel servis ödülü seçildiyse servis ID'si (Örn: netflix_vip, steam_vip)"
+)
+@app_commands.choices(odul_turu=[
+    app_commands.Choice(name="⭐ 24 Saatlik / Süreli VIP Üyelik", value="vip"),
+    app_commands.Choice(name="🎁 +1 Ekstra Stok Hakkı (Bekleme Sıfırla)", value="claim"),
+    app_commands.Choice(name="🎮 Oyunlu Steam Hesabı", value="steam"),
+    app_commands.Choice(name="📦 Belirli Bir Servisten Stok", value="service")
+])
+async def kupon_olustur_command(
+    interaction: discord.Interaction,
+    kod: str,
+    odul_turu: str,
+    kullanim_limiti: int = 1,
+    vip_saati: int = 24,
+    servis_id: str = ""
+):
+    if not is_admin_user(interaction.user):
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    code_clean = kod.strip().upper()
+    reward_val = str(vip_saati) if odul_turu == "vip" else ""
+
+    coupon = db.create_coupon(
+        code=code_clean,
+        reward_type=odul_turu,
+        reward_value=reward_val,
+        max_uses=max(1, kullanim_limiti),
+        specific_service=servis_id
+    )
+
+    type_names = {
+        "vip": f"⭐ {vip_saati} Saatlik VIP Üyelik",
+        "claim": "🎁 +1 Ekstra Stok Hakkı (Bekleme Süresi Sıfırlama)",
+        "steam": "🎮 Oyunlu Steam Hesabı",
+        "service": f"📦 Servis: `{servis_id}`"
+    }
+
+    embed = discord.Embed(
+        title="🎟️ Yeni Promosyon Kuponu Oluşturuldu!",
+        color=discord.Color.green(),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.add_field(name="🔑 Kupon Kodu", value=f"```\n{code_clean}\n```", inline=False)
+    embed.add_field(name="🎁 Verilecek Ödül", value=type_names.get(odul_turu, odul_turu), inline=True)
+    embed.add_field(name="👥 Kullanım Kotası", value=f"**{kullanim_limiti} farklı kişi**", inline=True)
+    embed.set_footer(text="Üyeler ana paneldeki '🎟️ Kupon Kullan' butonundan kodu girebilir.")
+
+    await safe_respond(interaction, embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="kupon-liste", description="📋 Mevcut kupon kodlarını ve kullanım kotalarını listeler (Admin)")
+@app_commands.default_permissions(administrator=True)
+async def kupon_liste_command(interaction: discord.Interaction):
+    if not is_admin_user(interaction.user):
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    coupons = db.get_all_coupons()
+    embed = discord.Embed(
+        title="📋 Kayıtlı Promosyon Kuponları",
+        color=discord.Color.gold(),
+        timestamp=discord.utils.utcnow()
+    )
+
+    if not coupons:
+        embed.description = "Henüz oluşturulmuş aktif bir kupon bulunmuyor.\n`/kupon-olustur` komutu ile yeni kupon oluşturabilirsiniz."
+    else:
+        desc_lines = []
+        for code, c in coupons.items():
+            r_type = c.get("reward_type", "claim")
+            used_cnt = c.get("used_count", len(c.get("used_by", [])))
+            max_u = c.get("max_uses", 1)
+            desc_lines.append(f"• **`{code}`** → Ödül: `{r_type}` | Kullanım: **{used_cnt}/{max_u}**")
+        embed.description = "\n".join(desc_lines)[:4000]
+
+    await safe_respond(interaction, embed=embed, ephemeral=True)
+
+
+@bot.tree.command(name="kupon-sil", description="🗑️ Belirtilen kupon kodunu siler ve iptal eder (Admin)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(kod="Silinecek kupon kodu")
+async def kupon_sil_command(interaction: discord.Interaction, kod: str):
+    if not is_admin_user(interaction.user):
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    res = db.delete_coupon(kod)
+    if res:
+        await safe_respond(interaction, content=f"✅ **`{kod.upper()}`** kupon kodu başarıyla silindi ve iptal edildi.", ephemeral=True)
+    else:
+        await safe_respond(interaction, content=f"❌ **`{kod.upper()}`** kodlu kupon bulunamadı.", ephemeral=True)
 
 
 @bot.tree.command(name="hitabe-gonder", description="🇹🇷 Belirtilen kanala anında Gençliğe Hitabe mesajı gönderir (Admin)")
