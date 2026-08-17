@@ -1514,39 +1514,47 @@ async def scheduled_dm_reminder_task():
 # --- BOT EVENTS & INVITE TRACKER & MESSAGE TRACKER ---
 @bot.event
 async def on_ready():
-    print(f"Bot Giriş Yaptı: {bot.user.name} ({bot.user.id})")
+    # 1. REGISTER PERSISTENT VIEWS IMMEDIATELY (0ms delay for button clicks!)
+    bot.add_view(MainPanelView())
+    bot.add_view(CloseTicketView())
+    print(f"🚀 [BOT ONLINE] {bot.user.name} ({bot.user.id}) - Persistent views registered!")
+
+    # 2. Start Web Server in background
     asyncio.create_task(start_web_server())
 
-    # Start Scheduled Announcement Loop
+    # 3. Start Scheduled Tasks
     if not scheduled_restock_announcement.is_running():
         scheduled_restock_announcement.start()
         print("⏰ Otomatik Stok Duyurusu Zamanlayıcısı Başlatıldı! (Her Gün 13:30 & 01:30 TSİ)")
 
-    # Start Scheduled DM Reminder Loop
     if not scheduled_dm_reminder_task.is_running():
         scheduled_dm_reminder_task.start()
-        print("📬 Otomatik DM Hatırlatıcı Zamanlayıcısı Başlatıldı! (Her 75 dakikada bir kontrol)")
+        print("📬 Otomatik DM Hatırlatıcı Zamanlayıcısı Başlatıldı!")
 
-    bot.add_view(MainPanelView())
-    bot.add_view(CloseTicketView())
+    if not scheduled_hitabe_task.is_running():
+        scheduled_hitabe_task.start()
+        print("🇹🇷 30 Dakikada Bir Gençliğe Hitabe Gönderme Zamanlayıcısı Başlatıldı!")
 
-    # Cache Invites
-    for guild in bot.guilds:
+    # 4. Background non-blocking invite cache & sync
+    async def bg_startup_tasks():
+        for guild in bot.guilds:
+            try:
+                invites_cache[guild.id] = await guild.invites()
+            except Exception:
+                pass
         try:
-            invites_cache[guild.id] = await guild.invites()
-        except Exception:
-            pass
+            if GUILD_ID:
+                guild_target = discord.Object(id=int(GUILD_ID))
+                bot.tree.copy_global_to(guild=guild_target)
+                synced = await bot.tree.sync(guild=guild_target)
+                print(f"⚡ Komutlar sunucuna ({GUILD_ID}) senkronize edildi ({len(synced)} komut).")
+            else:
+                synced = await bot.tree.sync()
+                print(f"Global komutlar senkronize edildi: {len(synced)} adet")
+        except Exception as e:
+            print(f"Komut Senkronizasyon Hatası: {e}")
 
-    try:
-        if GUILD_ID:
-            guild_target = discord.Object(id=int(GUILD_ID))
-            count = await perform_sync_cleanly(guild_obj=guild_target)
-            print(f"⚡ Global komutlar silindi! {count} adet komut SADECE sunucuna ({GUILD_ID}) TEKİL olarak aktarıldı.")
-        else:
-            synced = await bot.tree.sync()
-            print(f"Global komutlar senkronize edildi: {len(synced)} adet")
-    except Exception as e:
-        print(f"Komut Senkronizasyon Hatası: {e}")
+    asyncio.create_task(bg_startup_tasks())
 
     await bot.change_presence(
         activity=discord.Activity(
@@ -1554,6 +1562,16 @@ async def on_ready():
             name="🎁 Free & ⭐ VIP Stoklar | !panel / !sync"
         )
     )
+
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    print(f"⚠️ [SLASH COMMAND ERROR]: {error}")
+    await safe_respond(interaction, content=f"❌ **Komut Hatası:** `{error}`", ephemeral=True)
+
+@bot.event
+async def on_error(event, *args, **kwargs):
+    import traceback
+    print(f"⚠️ [BOT ERROR in {event}]:\n{traceback.format_exc()}")
 
 @bot.event
 async def on_message(message: discord.Message):
