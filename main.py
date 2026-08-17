@@ -2068,6 +2068,43 @@ async def hak_sifirla_command(interaction: discord.Interaction, kullanici: disco
     await interaction.response.send_message(f"✅ {kullanici.mention} kullanıcısının günlük stok alma hakkı sıfırlandı!", ephemeral=True)
 
 
+@bot.tree.command(name="hitabe-gonder", description="🇹🇷 Belirtilen kanala anında Gençliğe Hitabe mesajı gönderir (Admin)")
+@app_commands.default_permissions(administrator=True)
+async def hitabe_gonder_command(interaction: discord.Interaction):
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
+
+    if not is_admin_user(interaction.user):
+        await interaction.followup.send("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    channel = bot.get_channel(int(HITABE_CHANNEL_ID))
+    if not channel:
+        try:
+            channel = await bot.fetch_channel(int(HITABE_CHANNEL_ID))
+        except Exception:
+            channel = None
+
+    if not channel:
+        await interaction.followup.send(f"❌ Hedef kanal (`{HITABE_CHANNEL_ID}`) bulunamadı!", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🇹🇷 ATATÜRK'ÜN GENÇLİĞE HİTABESİ 🇹🇷",
+        description=HITABE_TEXT,
+        color=discord.Color.from_rgb(227, 10, 23),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_author(name="Gazi Mustafa Kemal Atatürk", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
+    embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
+    embed.set_footer(text="🇹🇷 \"Ne Mutlu Türk'üm Diyene!\" • LeaksTr")
+
+    await channel.send(embed=embed)
+    await interaction.followup.send(f"🇹🇷 Gençliğe Hitabe başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
+
+
 @bot.tree.command(name="duyuru-test", description="📢 Otomatik 13:30/01:30 stok duyurusunu anında manuel olarak test eder (Admin)")
 @app_commands.default_permissions(administrator=True)
 async def duyuru_test_command(interaction: discord.Interaction):
