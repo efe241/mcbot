@@ -2072,25 +2072,26 @@ async def hak_sifirla_command(interaction: discord.Interaction, kullanici: disco
 
 @bot.tree.command(name="hitabe-gonder", description="🇹🇷 Belirtilen kanala anında Gençliğe Hitabe mesajı gönderir (Admin)")
 @app_commands.default_permissions(administrator=True)
-async def hitabe_gonder_command(interaction: discord.Interaction):
-    try:
-        await interaction.response.defer(ephemeral=True)
-    except Exception:
-        pass
-
+@app_commands.describe(kanal="Hitabenin gönderileceği kanal (İsteğe bağlı, seçilmezse otomatik kanala gider)")
+async def hitabe_gonder_command(interaction: discord.Interaction, kanal: discord.TextChannel = None):
     if not is_admin_user(interaction.user):
-        await interaction.followup.send("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
 
-    channel = bot.get_channel(int(HITABE_CHANNEL_ID))
-    if not channel:
-        try:
-            channel = await bot.fetch_channel(int(HITABE_CHANNEL_ID))
-        except Exception:
-            channel = None
+    target_channel = kanal
+    if not target_channel:
+        target_channel = bot.get_channel(int(HITABE_CHANNEL_ID))
+        if not target_channel:
+            try:
+                target_channel = await bot.fetch_channel(int(HITABE_CHANNEL_ID))
+            except Exception:
+                target_channel = None
 
-    if not channel:
-        await interaction.followup.send(f"❌ Hedef kanal (`{HITABE_CHANNEL_ID}`) bulunamadı!", ephemeral=True)
+    if not target_channel and interaction.channel:
+        target_channel = interaction.channel
+
+    if not target_channel:
+        await safe_respond(interaction, content=f"❌ Hedef kanal (`{HITABE_CHANNEL_ID}`) bulunamadı!", ephemeral=True)
         return
 
     embed = discord.Embed(
@@ -2103,20 +2104,18 @@ async def hitabe_gonder_command(interaction: discord.Interaction):
     embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
     embed.set_footer(text="🇹🇷 \"Ne Mutlu Türk'üm Diyene!\" • LeaksTr")
 
-    await channel.send(embed=embed)
-    await interaction.followup.send(f"🇹🇷 Gençliğe Hitabe başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
+    try:
+        await target_channel.send(embed=embed)
+        await safe_respond(interaction, content=f"🇹🇷 Gençliğe Hitabe başarıyla {target_channel.mention} kanalına gönderildi!", ephemeral=True)
+    except Exception as e:
+        await safe_respond(interaction, content=f"❌ **Gönderme Hatası:** {e}\n*(Botun {target_channel.mention} kanalında 'Mesaj Gönder' ve 'Embed Ekle' yetkisi olduğundan emin olun!)*", ephemeral=True)
 
 
 @bot.tree.command(name="duyuru-test", description="📢 Otomatik 13:30/01:30 stok duyurusunu anında manuel olarak test eder (Admin)")
 @app_commands.default_permissions(administrator=True)
 async def duyuru_test_command(interaction: discord.Interaction):
-    try:
-        await interaction.response.defer(ephemeral=True)
-    except Exception:
-        pass
-
     if not is_admin_user(interaction.user):
-        await interaction.followup.send("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
 
     config = db.get_config()
@@ -2128,8 +2127,11 @@ async def duyuru_test_command(interaction: discord.Interaction):
         except Exception:
             channel = None
 
+    if not channel and interaction.channel:
+        channel = interaction.channel
+
     if not channel:
-        await interaction.followup.send(f"❌ Duyuru kanalı (`{channel_id}`) bulunamadı!", ephemeral=True)
+        await safe_respond(interaction, content=f"❌ Duyuru kanalı (`{channel_id}`) bulunamadı!", ephemeral=True)
         return
 
     embed = discord.Embed(
@@ -2150,21 +2152,19 @@ async def duyuru_test_command(interaction: discord.Interaction):
     if channel.guild and channel.guild.icon:
         embed.set_thumbnail(url=channel.guild.icon.url)
 
-    await channel.send(content="@everyone", embed=embed, view=MainPanelView())
-    await interaction.followup.send(f"✅ Test duyurusu başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
+    try:
+        await channel.send(content="@everyone", embed=embed, view=MainPanelView())
+        await safe_respond(interaction, content=f"✅ Test duyurusu başarıyla {channel.mention} kanalına gönderildi!", ephemeral=True)
+    except Exception as e:
+        await safe_respond(interaction, content=f"❌ **Duyuru Gönderme Hatası:** {e}\n*(Botun {channel.mention} kanalında 'Mesaj Gönder', 'Embed Ekle' ve '@everyone Etiketleme' yetkisi olduğundan emin olun!)*", ephemeral=True)
 
 
 @bot.tree.command(name="loglar", description="📜 Son stok teslimatlarını ve bot işlem kayıtlarını listeler (Admin)")
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(limit="Kaç adet son log gösterilsin? (Varsayılan: 15)")
 async def loglar_command(interaction: discord.Interaction, limit: int = 15):
-    try:
-        await interaction.response.defer(ephemeral=True)
-    except Exception:
-        pass
-
     if not is_admin_user(interaction.user):
-        await interaction.followup.send("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
 
     logs = db.get_recent_logs(limit=limit)
@@ -2193,26 +2193,24 @@ async def loglar_command(interaction: discord.Interaction, limit: int = 15):
         embed.description = log_text[:4000]
 
     embed.set_footer(text="Sadece Yöneticiler Görüntüleyebilir • Gerçek Zamanlı Veri")
-    await interaction.followup.send(embed=embed, ephemeral=True)
+    await safe_respond(interaction, embed=embed, ephemeral=True)
 
 
 @bot.tree.command(name="hatirlatici", description="📬 Hakkı açılan üyelere DM hatırlatıcı döngüsünü anında tetikler (Admin)")
 @app_commands.default_permissions(administrator=True)
 async def hatirlatici_command(interaction: discord.Interaction):
     if not is_admin_user(interaction.user):
-        await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
 
-    try:
-        await interaction.response.defer(ephemeral=True)
-    except Exception:
-        pass
-
     eligible = db.get_eligible_reminder_users()
-    await interaction.followup.send(
-        f"📬 **DM Hatırlatıcı Başlatıldı!**\n"
-        f"• Şu an bekleme süresi dolup hatırlatma alabilecek üye sayısı: **{len(eligible)} kişi**\n"
-        f"• Arka planda güvenli aralıklarla (3-5 sn) özelden hatırlatma mesajları iletiliyor.",
+    await safe_respond(
+        interaction,
+        content=(
+            f"📬 **DM Hatırlatıcı Başlatıldı!**\n"
+            f"• Şu an bekleme süresi dolup hatırlatma alabilecek üye sayısı: **{len(eligible)} kişi**\n"
+            f"• Arka planda güvenli aralıklarla (3-5 sn) özelden hatırlatma mesajları iletiliyor."
+        ),
         ephemeral=True
     )
     asyncio.create_task(scheduled_dm_reminder_task())
