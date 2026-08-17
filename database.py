@@ -206,6 +206,14 @@ DEFAULT_SERVICES = [
         "is_unlimited": True
     },
     {
+        "id": "tabii_vip",
+        "name": "Tabii Premium VIP",
+        "category": "vip",
+        "emoji": "🎬",
+        "description": "VIP Özel Tabii Dizi/Film/Maç Üyeliği",
+        "is_unlimited": False
+    },
+    {
         "id": "gemini_pro",
         "name": "Google Gemini Pro (Sınırsız)",
         "category": "vip",
