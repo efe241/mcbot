@@ -1751,20 +1751,22 @@ async def start_trivia_in_channel(channel: discord.TextChannel):
     asyncio.create_task(timeout_watcher())
 
 
+TRIVIA_CHANNEL_ID = "1538912794374574080"
+
 @tasks.loop(minutes=75)
 async def scheduled_trivia_task():
     try:
-        config = db.get_config()
-        channel_id = config.get("announcement_channel_id", "1538560333545738281")
-        channel = bot.get_channel(int(channel_id))
+        channel = bot.get_channel(int(TRIVIA_CHANNEL_ID))
         if not channel:
             try:
-                channel = await bot.fetch_channel(int(channel_id))
+                channel = await bot.fetch_channel(int(TRIVIA_CHANNEL_ID))
             except Exception:
                 channel = None
 
         if channel:
             await start_trivia_in_channel(channel)
+        else:
+            print(f"⚠️ [TRIVIA HATA] Yarışma kanalı ({TRIVIA_CHANNEL_ID}) bulunamadı!")
     except Exception as e:
         print(f"⚠️ [TRIVIA HATA]: {e}")
 
@@ -2406,15 +2408,26 @@ async def hitabe_gonder_command(interaction: discord.Interaction, kanal: discord
 
 @bot.tree.command(name="bilgi-yarismasi", description="🧠 Belirtilen kanalda anında ödüllü Bilgi / Refleks Yarışması başlatır (Admin)")
 @app_commands.default_permissions(administrator=True)
-@app_commands.describe(kanal="Yarışmanın başlayacağı kanal (İsteğe bağlı, seçilmezse komutun yazıldığı kanalda başlar)")
+@app_commands.describe(kanal="Yarışmanın başlayacağı kanal (İsteğe bağlı, seçilmezse otomatik yarışma kanalında başlar)")
 async def bilgi_yarismasi_command(interaction: discord.Interaction, kanal: discord.TextChannel = None):
     if not is_admin_user(interaction.user):
         await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
 
-    target_channel = kanal or interaction.channel
+    target_channel = kanal
     if not target_channel:
-        await safe_respond(interaction, content="❌ Hedef kanal belirlenemedi!", ephemeral=True)
+        target_channel = bot.get_channel(int(TRIVIA_CHANNEL_ID))
+        if not target_channel:
+            try:
+                target_channel = await bot.fetch_channel(int(TRIVIA_CHANNEL_ID))
+            except Exception:
+                target_channel = None
+
+    if not target_channel and interaction.channel:
+        target_channel = interaction.channel
+
+    if not target_channel:
+        await safe_respond(interaction, content=f"❌ Hedef kanal (`{TRIVIA_CHANNEL_ID}`) bulunamadı!", ephemeral=True)
         return
 
     if active_trivia["is_active"]:
