@@ -433,18 +433,30 @@ class AdminPanelView(discord.ui.View):
 
     @discord.ui.button(label="📦 Stok Yükle", style=discord.ButtonStyle.primary, emoji="➕")
     async def add_stock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         view = AdminControlPanelContainerView("add_stock")
-        await interaction.response.send_message("👇 Stok eklemek istediğiniz servisi seçin:", view=view, ephemeral=True)
+        await interaction.followup.send("👇 Stok eklemek istediğiniz servisi seçin:", view=view, ephemeral=True)
 
     @discord.ui.button(label="👑 Süresiz VIP Yönetimi", style=discord.ButtonStyle.success, emoji="⭐")
     async def vip_manage_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         view = AdminControlPanelContainerView("manage_vip")
-        await interaction.response.send_message("👇 VIP durumunu değiştirmek istediğiniz üyeyi seçin:", view=view, ephemeral=True)
+        await interaction.followup.send("👇 VIP durumunu değiştirmek istediğiniz üyeyi seçin:", view=view, ephemeral=True)
 
     @discord.ui.button(label="🏆 Kazanana 1 Günlük VIP Ver", style=discord.ButtonStyle.secondary, emoji="🏆")
     async def give_1day_vip_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         view = AdminControlPanelContainerView("give_1day_vip")
-        await interaction.response.send_message("👇 Etkinlik/Çekiliş kazanan üyeyi seçin:", view=view, ephemeral=True)
+        await interaction.followup.send("👇 Etkinlik/Çekiliş kazanan üyeyi seçin:", view=view, ephemeral=True)
 
     @discord.ui.button(label="📊 İstatistikler", style=discord.ButtonStyle.primary, emoji="📊")
     async def stats_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -479,8 +491,12 @@ class AdminPanelView(discord.ui.View):
 
     @discord.ui.button(label="🔄 Hak Sıfırla", style=discord.ButtonStyle.secondary, emoji="⚡")
     async def reset_limit_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         view = AdminControlPanelContainerView("reset_user")
-        await interaction.response.send_message("👇 Bekleme süresini sıfırlamak istediğiniz üyeyi seçin:", view=view, ephemeral=True)
+        await interaction.followup.send("👇 Bekleme süresini sıfırlamak istediğiniz üyeyi seçin:", view=view, ephemeral=True)
 
     @discord.ui.button(label="📜 Canlı İşlem Logları", style=discord.ButtonStyle.primary, emoji="📜")
     async def view_logs_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -539,8 +555,12 @@ class AdminPanelView(discord.ui.View):
 
     @discord.ui.button(label="🗑️ Stok Sıfırla", style=discord.ButtonStyle.danger, emoji="❌")
     async def clear_stock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         view = AdminControlPanelContainerView("clear_stock")
-        await interaction.response.send_message("⚠️ Stoklarını temizlemek istediğiniz servisi seçin:", view=view, ephemeral=True)
+        await interaction.followup.send("⚠️ Stoklarını temizlemek istediğiniz servisi seçin:", view=view, ephemeral=True)
 
 
 # --- GENERAL USER DROPDOWNS & VIEWS ---
@@ -1228,9 +1248,14 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_admin_panel"
     )
     async def admin_panel_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
         member = interaction.guild.get_member(interaction.user.id) if interaction.guild else None
         if not member or not is_admin_user(member):
-            await interaction.response.send_message("❌ **Erişim Engellendi!** Bu panel sadece Yöneticilere özeldir.", ephemeral=True)
+            await interaction.followup.send("❌ **Erişim Engellendi!** Bu panel sadece Yöneticilere özeldir.", ephemeral=True)
             return
 
         embed = discord.Embed(
@@ -1242,7 +1267,7 @@ class MainPanelView(discord.ui.View):
             color=discord.Color.red()
         )
         view = AdminPanelView()
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 
 async def perform_sync_cleanly(guild_obj=None):
