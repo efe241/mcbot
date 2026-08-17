@@ -1539,7 +1539,7 @@ def build_hitabe_embed() -> discord.Embed:
     return embed
 
 
-@tasks.loop(minutes=30)
+@tasks.loop(hours=12)
 async def scheduled_hitabe_task():
     try:
         channel = bot.get_channel(int(HITABE_CHANNEL_ID))
@@ -1554,7 +1554,7 @@ async def scheduled_hitabe_task():
 
         embed = build_hitabe_embed()
         await channel.send(embed=embed)
-        print(f"🇹🇷 [GENÇLİĞE HİTABE] 30 dakikalık hitabe başarıyla gönderildi -> #{channel.name}")
+        print(f"🇹🇷 [GENÇLİĞE HİTABE] 12 saatlik hitabe başarıyla gönderildi -> #{channel.name}")
     except Exception as e:
         print(f"⚠️ [HİTABE HATA]: {e}")
 
@@ -1581,7 +1581,7 @@ async def on_ready():
 
     if not scheduled_hitabe_task.is_running():
         scheduled_hitabe_task.start()
-        print("🇹🇷 30 Dakikada Bir Gençliğe Hitabe Gönderme Zamanlayıcısı Başlatıldı!")
+        print("🇹🇷 12 Saatte Bir Gençliğe Hitabe Gönderme Zamanlayıcısı Başlatıldı!")
 
     # 4. Background non-blocking invite cache & sync
     async def bg_startup_tasks():
