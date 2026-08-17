@@ -412,6 +412,97 @@ class Admin1DayVIPUserSelect(discord.ui.UserSelect):
         await interaction.followup.send(embed=embed, ephemeral=False)
 
 
+class AdminCompensationServiceSelect(discord.ui.Select):
+    def __init__(self, target_user: discord.User):
+        self.target_user = target_user
+        services = db.get_services()
+        options = []
+        for s in services:
+            count = db.get_stock_count(s["id"])
+            cat = "⭐ VIP" if s.get("category") == "vip" else "🎁 FREE"
+            is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"] or s.get("is_unlimited", False)
+            count_str = "∞ Sınırsız" if is_unlimited else f"{count} adet"
+            options.append(discord.SelectOption(
+                label=f"{s['name']}",
+                value=s["id"],
+                description=f"[{cat}] Stok: {count_str}",
+                emoji=s.get("emoji", "📦")
+            ))
+        super().__init__(placeholder=f"👇 {target_user.name} adlı üyeye verilecek telafi servisini seçin...", options=options[:25])
+
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+
+        service_id = self.values[0]
+        service = db.get_service(service_id)
+        if not service:
+            await interaction.followup.send("❌ Servis bulunamadı!", ephemeral=True)
+            return
+
+        account_data = db.get_stock_account(service_id)
+        if not account_data:
+            await interaction.followup.send(f"❌ **{service['name']}** servisinde şu anda stok kalmamış!", ephemeral=True)
+            return
+
+        # Record log
+        db.add_event_log(
+            event_type="COMPENSATION",
+            user_id=self.target_user.id,
+            username=self.target_user.name,
+            title=f"{service['name']} Telafi Hesabı Gönderildi",
+            details=f"Yetkili: {interaction.user.name} | Hesap: `{account_data[:30]}...`",
+            service_id=service_id
+        )
+
+        dm_embed = discord.Embed(
+            title=f"🔄 {service.get('emoji', '🎁')} {service['name']} - Telafi Hesabınız Hazır!",
+            description=(
+                f"Merhaba {self.target_user.name}!\n\n"
+                "Bildirdiğiniz hatalı hesap incelenmiş ve yetkilimiz tarafından tarafınıza **yeni çalışan hesap** tanımlanmıştır! Güle güle kullanın. 🎉"
+            ),
+            color=discord.Color.green(),
+            timestamp=discord.utils.utcnow()
+        )
+        dm_embed.add_field(name="🔑 Yeni Hesap / Link Bilgisi", value=f"```\n{account_data}\n```", inline=False)
+        dm_embed.set_footer(text=f"LeaksTr Telafi Sistemi • Yetkili: {interaction.user.name}")
+
+        dm_sent = False
+        try:
+            await self.target_user.send(embed=dm_embed)
+            dm_sent = True
+        except Exception:
+            dm_sent = False
+
+        if dm_sent:
+            await interaction.followup.send(
+                f"✅ **{service['name']}** telafi hesabı başarıyla {self.target_user.mention} adlı üyenin **DM kutusuna** gönderildi!\n\n**🔑 İletilen Hesap:**\n```\n{account_data}\n```",
+                ephemeral=True
+            )
+        else:
+            await interaction.followup.send(
+                f"⚠️ {self.target_user.mention} adlı üyenin DM kutusu kapalı! Lütfen hesabı manuel iletin:\n\n**🔑 Hesap:**\n```\n{account_data}\n```",
+                ephemeral=True
+            )
+
+
+class AdminCompensationUserSelect(discord.ui.UserSelect):
+    def __init__(self):
+        super().__init__(placeholder="👇 Hatalı stok bildirip yeni hesap verilecek üyeyi seçin...", min_values=1, max_values=1)
+
+    async def callback(self, interaction: discord.Interaction):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+        target_user = self.values[0]
+        view = discord.ui.View(timeout=120)
+        view.add_item(AdminCompensationServiceSelect(target_user=target_user))
+        await interaction.followup.send(f"👇 **{target_user.mention}** adlı üyeye hangi servisten yeni stok verilsin?", view=view, ephemeral=True)
+
+
 class AdminControlPanelContainerView(discord.ui.View):
     def __init__(self, content_type: str):
         super().__init__(timeout=120)
@@ -425,6 +516,8 @@ class AdminControlPanelContainerView(discord.ui.View):
             self.add_item(AdminVIPUserSelect())
         elif content_type == "give_1day_vip":
             self.add_item(Admin1DayVIPUserSelect())
+        elif content_type == "give_compensation":
+            self.add_item(AdminCompensationUserSelect())
 
 
 class AdminPanelView(discord.ui.View):
@@ -440,7 +533,16 @@ class AdminPanelView(discord.ui.View):
         view = AdminControlPanelContainerView("add_stock")
         await interaction.followup.send("👇 Stok eklemek istediğiniz servisi seçin:", view=view, ephemeral=True)
 
-    @discord.ui.button(label="👑 Süresiz VIP Yönetimi", style=discord.ButtonStyle.success, emoji="⭐")
+    @discord.ui.button(label="🔄 Telafi Stok Ver", style=discord.ButtonStyle.success, emoji="🔄")
+    async def compensation_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
+        view = AdminControlPanelContainerView("give_compensation")
+        await interaction.followup.send("👇 Hatalı stok alan ve yeni hesap verilecek üyeyi seçin:", view=view, ephemeral=True)
+
+    @discord.ui.button(label="👑 Süresiz VIP Yönetimi", style=discord.ButtonStyle.secondary, emoji="⭐")
     async def vip_manage_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
         try:
             await interaction.response.defer(ephemeral=True)
@@ -1584,6 +1686,74 @@ async def vip_ver_command(interaction: discord.Interaction, kullanici: discord.U
     )
     embed.set_footer(text="LeaksTr VIP Award System")
     await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="yeni-stok-ver", description="🔄 Hatalı stok alan üyeye anında yeni telafi hesabı teslim eder (Admin)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(kullanici="Telafi hesabı gönderilecek üye", servis_id="Gönderilecek servisin ID'si (Örn: netflix_vip)")
+async def yeni_stok_ver_command(interaction: discord.Interaction, kullanici: discord.User, servis_id: str):
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
+
+    if not is_admin_user(interaction.user):
+        await interaction.followup.send("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    service = db.get_service(servis_id)
+    if not service:
+        await interaction.followup.send(f"❌ **'{servis_id}'** ID'li servis bulunamadı!", ephemeral=True)
+        return
+
+    account_data = db.get_stock_account(servis_id)
+    if not account_data:
+        await interaction.followup.send(f"❌ **{service['name']}** servisinde şu anda stok kalmamış!", ephemeral=True)
+        return
+
+    # Record log
+    db.add_event_log(
+        event_type="COMPENSATION",
+        user_id=kullanici.id,
+        username=kullanici.name,
+        title=f"{service['name']} Telafi Hesabı Gönderildi",
+        details=f"Yetkili: {interaction.user.name} | Hesap: `{account_data[:30]}...`",
+        service_id=servis_id
+    )
+
+    dm_embed = discord.Embed(
+        title=f"🔄 {service.get('emoji', '🎁')} {service['name']} - Telafi Hesabınız Hazır!",
+        description=(
+            f"Merhaba {kullanici.name}!\n\n"
+            "Bildirdiğiniz hatalı hesap incelenmiş ve yetkilimiz tarafından tarafınıza **yeni çalışan hesap** tanımlanmıştır! Güle güle kullanın. 🎉"
+        ),
+        color=discord.Color.green(),
+        timestamp=discord.utils.utcnow()
+    )
+    dm_embed.add_field(name="🔑 Yeni Hesap / Link Bilgisi", value=f"```\n{account_data}\n```", inline=False)
+    dm_embed.set_footer(text=f"LeaksTr Telafi Sistemi • Yetkili: {interaction.user.name}")
+
+    dm_sent = False
+    try:
+        await kullanici.send(embed=dm_embed)
+        dm_sent = True
+    except Exception:
+        dm_sent = False
+
+    if dm_sent:
+        await interaction.followup.send(
+            f"✅ **{service['name']}** telafi hesabı başarıyla {kullanici.mention} adlı üyenin **DM kutusuna** gönderildi!\n\n**🔑 İletilen Hesap:**\n```\n{account_data}\n```",
+            ephemeral=True
+        )
+    else:
+        await interaction.followup.send(
+            f"⚠️ {kullanici.mention} adlı üyenin DM kutusu kapalı! Lütfen hesabı kanaldan manuel iletin:\n\n**🔑 Hesap:**\n```\n{account_data}\n```",
+            ephemeral=True
+        )
+
+@yeni_stok_ver_command.autocomplete("servis_id")
+async def yeni_stok_ver_autocomplete(interaction: discord.Interaction, current: str):
+    return await servis_id_autocomplete(interaction, current)
 
 
 @bot.tree.command(name="istatistik", description="📊 Detaylı Admin İstatistik & Analiz Paneli (Admin)")
