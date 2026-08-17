@@ -1514,13 +1514,48 @@ async def scheduled_dm_reminder_task():
 # --- AUTOMATIC GENÇLİĞE HİTABE TASK (EVERY 30 MINUTES) ---
 HITABE_CHANNEL_ID = "1538891499251568841"
 
-HITABE_TEXT = """**Ey Türk gençliği!** Birinci vazifen; Türk istiklalini, Türk cumhuriyetini, ilelebet muhafaza ve müdafaa etmektir.
+def build_hitabe_embed() -> discord.Embed:
+    embed = discord.Embed(
+        title="🇹🇷 ❝ EY TÜRK GENÇLİĞİ! ❞ 🇹🇷",
+        description=(
+            "```fix\n"
+            "GAZİ MUSTAFA KEMAL ATATÜRK'ÜN TÜRK GENÇLİĞİNE HİTABESİ\n"
+            "```\n\n"
+            "🏛️ **BİRİNCİ VAZİFEN:**\n"
+            "> Türk istiklâlini, Türk Cumhuriyeti'ni, ilelebet muhafaza ve müdafaa etmektir. "
+            "Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir.\n\n"
+            "⚔️ **AHVAL VE ŞERAİT:**\n"
+            "> İstikbalde dahi seni bu hazineden mahrum etmek isteyecek dâhilî ve haricî bedhahların olacaktır. "
+            "Bir gün, istiklâl ve cumhuriyeti müdafaa mecburiyetine düşersen, vazifeye atılmak için içinde "
+            "bulunacağın vaziyetin imkân ve şeraitini düşünmeyeceksin! Bu imkân ve şerait, çok namüsait bir "
+            "mahiyette tezahür edebilir.\n\n"
+            "🛡️ **MİLLİ İSTİKLAL UYARISI:**\n"
+            "> İstiklâl ve cumhuriyetine kastedecek düşmanlar, bütün dünyada emsali görülmemiş bir galibiyetin "
+            "mümessili olabilirler. Cebren ve hile ile aziz vatanın bütün kaleleri zapt edilmiş, bütün tersanelerine "
+            "girilmiş, bütün orduları dağıtılmış ve memleketin her köşesi bilfiil işgal edilmiş olabilir.\n\n"
+            "> Bütün bu şeraitten daha elîm ve daha vahim olmak üzere, memleketin dâhilinde iktidara sahip olanlar, "
+            "gaflet ve dalâlet ve hattâ hıyanet içinde bulunabilirler. Hattâ bu iktidar sahipleri, şahsî menfaatlerini "
+            "müstevlîlerin siyasî emelleriyle tevhit edebilirler. Millet, fakruzaruret içinde harap ve bîtap düşmüş olabilir.\n\n"
+            "🩸 **ASİL KUDRET & SON SÖZ:**\n"
+            "> **Ey Türk istikbalinin evlâdı!** İşte, bu ahval ve şerait içinde dahi vazifen, "
+            "Türk istiklâl ve cumhuriyetini kurtarmaktır!\n\n"
+            "🔥 **Muhtaç olduğun kudret, damarlarındaki asil kanda mevcuttur!**"
+        ),
+        color=discord.Color.from_rgb(227, 10, 23),
+        timestamp=discord.utils.utcnow()
+    )
+    
+    embed.set_author(
+        name="Gazi Mustafa Kemal Atatürk (1881 - 1938)",
+        icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Ataturk1930s.jpg/800px-Ataturk1930s.jpg"
+    )
+    embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
+    embed.set_footer(
+        text="🇹🇷 \"Ne Mutlu Türk'üm Diyene!\" • LeaksTr Millî Miras Köşesi",
+        icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png"
+    )
+    return embed
 
-Mevcudiyetinin ve istikbalinin yegâne temeli budur. Bu temel, senin en kıymetli hazinendir. İstikbalde dahi seni bu hazineden mahrum etmek isteyecek dâhilî ve haricî bedhahların olacaktır. Bir gün, istiklal ve cumhuriyeti müdafaa mecburiyetine düşersen, vazifeye atılmak için içinde bulunacağın vaziyetin imkân ve şeraitini düşünmeyeceksin. Bu imkân ve şerait, çok namüsait bir mahiyette tezahür edebilir. İstiklal ve cumhuriyetine kastedecek düşmanlar, bütün dünyada emsali görülmemiş bir galibiyetin mümessili olabilirler. Cebren ve hile ile aziz vatanın bütün kaleleri zapt edilmiş, bütün tersanelerine girilmiş, bütün orduları dağıtılmış ve memleketin her köşesi bilfiil işgal edilmiş olabilir. Bütün bu şeraitten daha elim ve daha vahim olmak üzere, memleketin dâhilinde iktidara sahip olanlar, gaflet ve dalalet ve hatta hıyanet içinde bulunabilirler. Hatta bu iktidar sahipleri, şahsî menfaatlerini müstevlilerin siyasî emelleriyle tevhit edebilirler. Millet, fakruzaruret içinde harap ve bitap düşmüş olabilir.
-
-**Ey Türk istikbalinin evladı!** İşte, bu ahval ve şerait içinde dahi vazifen, Türk istiklal ve cumhuriyetini kurtarmaktır. **Muhtaç olduğun kudret, damarlarındaki asil kanda mevcuttur!**
-
-*Gazi Mustafa Kemal Atatürk*"""
 
 @tasks.loop(minutes=30)
 async def scheduled_hitabe_task():
@@ -1535,16 +1570,7 @@ async def scheduled_hitabe_task():
         if not channel:
             return
 
-        embed = discord.Embed(
-            title="🇹🇷 ATATÜRK'ÜN GENÇLİĞE HİTABESİ 🇹🇷",
-            description=HITABE_TEXT,
-            color=discord.Color.from_rgb(227, 10, 23),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.set_author(name="Gazi Mustafa Kemal Atatürk", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
-        embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
-        embed.set_footer(text="🇹🇷 \"Ne Mutlu Türk'üm Diyene!\" • LeaksTr")
-
+        embed = build_hitabe_embed()
         await channel.send(embed=embed)
         print(f"🇹🇷 [GENÇLİĞE HİTABE] 30 dakikalık hitabe başarıyla gönderildi -> #{channel.name}")
     except Exception as e:
@@ -2134,15 +2160,7 @@ async def hitabe_gonder_command(interaction: discord.Interaction, kanal: discord
         await safe_respond(interaction, content=f"❌ Hedef kanal (`{HITABE_CHANNEL_ID}`) bulunamadı!", ephemeral=True)
         return
 
-    embed = discord.Embed(
-        title="🇹🇷 ATATÜRK'ÜN GENÇLİĞE HİTABESİ 🇹🇷",
-        description=HITABE_TEXT,
-        color=discord.Color.from_rgb(227, 10, 23),
-        timestamp=discord.utils.utcnow()
-    )
-    embed.set_author(name="Gazi Mustafa Kemal Atatürk", icon_url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
-    embed.set_thumbnail(url="https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Flag_of_Turkey.svg/1200px-Flag_of_Turkey.svg.png")
-    embed.set_footer(text="🇹🇷 \"Ne Mutlu Türk'üm Diyene!\" • LeaksTr")
+    embed = build_hitabe_embed()
 
     try:
         await target_channel.send(embed=embed)
