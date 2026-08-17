@@ -1790,14 +1790,14 @@ async def hak_sifirla_command(interaction: discord.Interaction, kullanici: disco
 @bot.tree.command(name="duyuru-test", description="📢 Otomatik 13:30/01:30 stok duyurusunu anında manuel olarak test eder (Admin)")
 @app_commands.default_permissions(administrator=True)
 async def duyuru_test_command(interaction: discord.Interaction):
-    if not is_admin_user(interaction.user):
-        await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
-        return
-
     try:
         await interaction.response.defer(ephemeral=True)
     except Exception:
         pass
+
+    if not is_admin_user(interaction.user):
+        await interaction.followup.send("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
 
     config = db.get_config()
     channel_id = config.get("announcement_channel_id", "1538560333545738281")
