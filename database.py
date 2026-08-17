@@ -646,7 +646,7 @@ class DatabaseManager:
                 users[user_str]["last_wheel_spin"] = time.time()
             _write_json(USERS_FILE, users)
 
-    # REMINDER SYSTEM (COOLDOWN REFRESHED USERS)
+    # REMINDER SYSTEM (COOLDOWN REFRESHED / AVAILABLE USERS)
     def get_eligible_reminder_users(self):
         with _lock:
             users = _read_json(USERS_FILE, {})
@@ -656,9 +656,6 @@ class DatabaseManager:
             cooldown_seconds = config.get("cooldown_hours", 24) * 3600
 
             for u_id_str, u_data in users.items():
-                if u_data.get("total_claims", 0) <= 0:
-                    continue
-                
                 # Check last reminder timestamp (minimum 24 hours between reminders)
                 last_reminder = u_data.get("last_reminder_sent", 0)
                 if now - last_reminder < (24 * 3600):
@@ -671,6 +668,7 @@ class DatabaseManager:
                 is_vip = u_data.get("is_vip", False)
                 daily_limit = config.get("vip_daily_limit", 2) if is_vip else config.get("free_daily_limit", 1)
 
+                # Eligible if they have unused daily limits
                 if len(recent_claims) < daily_limit:
                     eligible.append(int(u_id_str))
 

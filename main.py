@@ -1262,18 +1262,35 @@ async def scheduled_restock_announcement():
 
 
 # --- AUTOMATIC DM REMINDER TASK (FOR ACTIVE USERS WHOSE COOLDOWN RESET) ---
-@tasks.loop(minutes=75)
+@tasks.loop(minutes=60)
 async def scheduled_dm_reminder_task():
     try:
         eligible_users = db.get_eligible_reminder_users()
+        
+        # If database list is small, also scan server members to find active users
+        if len(eligible_users) < 10:
+            for guild in bot.guilds:
+                for member in guild.members:
+                    if member.bot:
+                        continue
+                    if member.id not in eligible_users:
+                        # Check member cooldown
+                        is_vip = is_vip_user(member)
+                        is_booster = is_booster_user(member)
+                        can_claim, _, _, _ = db.check_user_cooldown(member.id, is_vip=is_vip, is_booster=is_booster)
+                        if can_claim:
+                            u_data = db.get_user_data(member.id)
+                            if time.time() - u_data.get("last_reminder_sent", 0) >= (24 * 3600):
+                                eligible_users.append(member.id)
+
         if not eligible_users:
             return
 
         # Randomize list order
         random.shuffle(eligible_users)
         
-        # Take a safe batch of up to 5-10 users per run to respect Discord rate limits
-        batch = eligible_users[:8]
+        # Take a safe batch of up to 10 users per run to respect Discord rate limits
+        batch = eligible_users[:10]
         
         sent_count = 0
         for user_id in batch:
