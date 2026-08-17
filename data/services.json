@@ -171,5 +171,13 @@
     "emoji": "✈️",
     "description": "VIP Özel SimMarket Hesabı (Sınırsız)",
     "is_unlimited": true
+  },
+  {
+    "id": "steam_vip",
+    "name": "Steam Oyunlu VIP",
+    "category": "vip",
+    "emoji": "🎮",
+    "description": "VIP Özel Oyunlu Steam Hesapları",
+    "is_unlimited": false
   }
 ]

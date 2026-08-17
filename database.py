@@ -127,6 +127,14 @@ DEFAULT_SERVICES = [
         "is_unlimited": True
     },
     {
+        "id": "steam_vip",
+        "name": "Steam Oyunlu VIP",
+        "category": "vip",
+        "emoji": "🎮",
+        "description": "VIP Özel Oyunlu Steam Hesapları",
+        "is_unlimited": False
+    },
+    {
         "id": "netflix_vip",
         "name": "Netflix UHD 4K",
         "category": "vip",
