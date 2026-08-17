@@ -718,247 +718,258 @@ class ServiceSelect(discord.ui.Select):
         except Exception:
             pass
 
-        service_id = self.values[0]
-        if service_id == "none":
-            await interaction.followup.send("❌ Bu kategoride henüz aktif servis bulunmuyor.", ephemeral=True)
-            return
+        try:
+            service_id = self.values[0]
+            if service_id == "none":
+                await interaction.followup.send("❌ Bu kategoride henüz aktif servis bulunmuyor.", ephemeral=True)
+                return
 
-        service = db.get_service(service_id)
-        if not service:
-            await interaction.followup.send("❌ Servis bulunamadı!", ephemeral=True)
-            return
+            service = db.get_service(service_id)
+            if not service:
+                await interaction.followup.send("❌ Servis bulunamadı!", ephemeral=True)
+                return
 
-        user = interaction.user
-        member = interaction.guild.get_member(user.id) if interaction.guild else None
-        
-        # 1. CHECK ANTI-ALT (Account Age < 7 Days)
-        if member:
-            passed_alt, age_days = check_anti_alt(member)
-            if not passed_alt:
+            user = interaction.user
+            member = interaction.guild.get_member(user.id) if interaction.guild else None
+            
+            # 1. CHECK ANTI-ALT (Account Age < 7 Days)
+            if member:
+                passed_alt, age_days = check_anti_alt(member)
+                if not passed_alt:
+                    config = db.get_config()
+                    min_days = config.get("min_account_age_days", 7)
+                    embed = discord.Embed(
+                        title="🛡️ Anti-Alt (Yan Hesap) Koruması Devrede!",
+                        description=(
+                            f"Stok güvenliği nedeniyle Discord hesabınızın en az **{min_days} günlük** "
+                            f"olması gerekmektedir.\n\n"
+                            f"📌 **Mevcut Hesap Yaşınız:** `{age_days} gün`"
+                        ),
+                        color=discord.Color.red()
+                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+                    return
+
+            # 2. CHECK CUSTOM STATUS FOR "LeaksTr"
+            if member and not check_user_custom_status(member):
                 config = db.get_config()
-                min_days = config.get("min_account_age_days", 7)
+                req_text = config.get("required_status", "LeaksTr")
                 embed = discord.Embed(
-                    title="🛡️ Anti-Alt (Yan Hesap) Koruması Devrede!",
+                    title="❌ Özel Durum Şartı Sağlanmadı!",
                     description=(
-                        f"Stok güvenliği nedeniyle Discord hesabınızın en az **{min_days} günlük** "
-                        f"olması gerekmektedir.\n\n"
-                        f"📌 **Mevcut Hesap Yaşınız:** `{age_days} gün`"
+                        f"Stok alabilmek için Discord **Özel Durumunuza (Custom Status)** "
+                        f"**`{req_text}`** eklemeniz gerekmektedir!\n\n"
+                        f"📌 **Örnek Kullanım:**\n"
+                        f"• `.gg/{req_text}` veya `{req_text} Best Generator`\n\n"
+                        f"*(Durumunuzu güncelledikten sonra hemen tekrar deneyebilirsiniz)*"
                     ),
                     color=discord.Color.red()
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
-        # 2. CHECK CUSTOM STATUS FOR "LeaksTr"
-        if member and not check_user_custom_status(member):
-            config = db.get_config()
-            req_text = config.get("required_status", "LeaksTr")
-            embed = discord.Embed(
-                title="❌ Özel Durum Şartı Sağlanmadı!",
-                description=(
-                    f"Stok alabilmek için Discord **Özel Durumunuza (Custom Status)** "
-                    f"**`{req_text}`** eklemeniz gerekmektedir!\n\n"
-                    f"📌 **Örnek Kullanım:**\n"
-                    f"• `.gg/{req_text}` veya `{req_text} Best Generator`\n\n"
-                    f"*(Durumunuzu güncelledikten sonra hemen tekrar deneyebilirsiniz)*"
-                ),
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        # 3. CHECK CHAT ACTIVITY (Must have sent at least 1 message)
-        if member and not check_user_chat_activity(member):
-            embed = discord.Embed(
-                title="💬 Chat Aktiflik Şartı Sağlanmadı!",
-                description=(
-                    "Stok veya ödül alabilmek için sunucu kanallarına **en az 1 adet mesaj** göndermiş olmanız gerekmektedir!\n\n"
-                    "📌 **Ne Yapmalıyım?**\n"
-                    "• Sunucu sohbet kanalına gidin ve en az 1 mesaj yazın (Selam vb.).\n"
-                    "• Mesajınızı attıktan sonra hemen gelip stok alabilirsiniz!"
-                ),
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        # 4. CHECK VIP & BOOSTER TIER
-        user_is_booster = is_booster_user(member) if member else False
-        user_is_vip = is_vip_user(member) if member else False
-
-        if service.get("category") == "vip" and not user_is_vip:
-            embed = discord.Embed(
-                title="🔒 VIP Servis Erişimi Engellendi",
-                description="Bu servis **VIP ve Server Booster üyeler** içindir!\nVIP üyelik almak veya sunucuya Nitro Boost basmak için yöneticilerle iletişime geçin.",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        # 5. CHECK COOLDOWN
-        can_claim, remaining_sec, claims_count, daily_limit = db.check_user_cooldown(
-            user.id, is_vip=user_is_vip, is_booster=user_is_booster
-        )
-
-        if not can_claim:
-            time_str = format_seconds(remaining_sec)
-            unlock_timestamp = int(time.time() + remaining_sec)
-            embed = discord.Embed(
-                title="⏳ Günlük Sınıra Ulaşıldı!",
-                description=(
-                    f"Günlük stok alma sınırına ulaştınız! (**{claims_count}/{daily_limit}**)\n\n"
-                    f"⏱️ **Yeniden alma hakkı:** <t:{unlock_timestamp}:R> ({time_str} sonra)"
-                ),
-                color=discord.Color.orange()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        # 6. SPECIAL TICKET FLOW FOR MailChecker, Nitro Promo & Spotify Premium
-        is_ticket_service = service.get("requires_ticket") or (service_id in ["mailchecker_tool", "nitro_promo", "spotify_premium_vip"])
-        if is_ticket_service:
-            guild = interaction.guild
-            if not guild:
-                await interaction.followup.send("❌ Ticket açma işlemi sunucuda gerçekleştirilmelidir.", ephemeral=True)
+            # 3. CHECK CHAT ACTIVITY (Must have sent at least 1 message)
+            if member and not check_user_chat_activity(member):
+                embed = discord.Embed(
+                    title="💬 Chat Aktiflik Şartı Sağlanmadı!",
+                    description=(
+                        "Stok veya ödül alabilmek için sunucu kanallarına **en az 1 adet mesaj** göndermiş olmanız gerekmektedir!\n\n"
+                        "📌 **Ne Yapmalıyım?**\n"
+                        "• Sunucu sohbet kanalına gidin ve en az 1 mesaj yazın (Selam vb.).\n"
+                        "• Mesajınızı attıktan sonra hemen gelip stok alabilirsiniz!"
+                    ),
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
-            if service_id == "nitro_promo":
-                prefix_str = "nitro-promo"
-            elif service_id == "spotify_premium_vip":
-                prefix_str = "spotify-premium"
-            else:
-                prefix_str = "mailchecker"
+            # 4. CHECK VIP & BOOSTER TIER
+            user_is_booster = is_booster_user(member) if member else False
+            user_is_vip = is_vip_user(member) if member else False
 
-            channel_name = f"📩-{prefix_str}-{user.name[:10]}".lower().replace(" ", "-")
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, attach_files=True),
-                guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
-            }
-
-            cfg = db.get_config()
-            admin_role_id = cfg.get("admin_role_id", 0)
-            if admin_role_id:
-                admin_role = guild.get_role(int(admin_role_id))
-                if admin_role:
-                    overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
-
-            try:
-                ticket_channel = await guild.create_text_channel(
-                    name=channel_name,
-                    overwrites=overwrites,
-                    topic=f"{service['name']} Talebi - {user.name} ({user.id})"
+            if service.get("category") == "vip" and not user_is_vip:
+                embed = discord.Embed(
+                    title="🔒 VIP Servis Erişimi Engellendi",
+                    description="Bu servis **VIP ve Server Booster üyeler** içindir!\nVIP üyelik almak veya sunucuya Nitro Boost basmak için yöneticilerle iletişime geçin.",
+                    color=discord.Color.red()
                 )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
 
-                ticket_embed = discord.Embed(
-                    title=f"🛠️ {service['name']} Talebi Alındı!",
+            # 5. CHECK COOLDOWN
+            can_claim, remaining_sec, claims_count, daily_limit = db.check_user_cooldown(
+                user.id, is_vip=user_is_vip, is_booster=user_is_booster
+            )
+
+            if not can_claim:
+                time_str = format_seconds(remaining_sec)
+                unlock_timestamp = int(time.time() + remaining_sec)
+                embed = discord.Embed(
+                    title="⏳ Günlük Sınıra Ulaşıldı!",
                     description=(
-                        f"Merhaba {user.mention}!\n\n"
-                        f"📌 **{service['name']}** talebiniz başarıyla oluşturuldu.\n"
-                        f"Yetkililerimiz (Efe / Admin) en kısa sürede **size özel canlı URL / Kodu** "
-                        f"bu kanala manuel olarak iletecektir.\n\n"
-                        f"⏱️ Lütfen bekleyin ve kanal bildirimlerinizi açık tutun!"
+                        f"Günlük stok alma sınırına ulaştınız! (**{claims_count}/{daily_limit}**)\n\n"
+                        f"⏱️ **Yeniden alma hakkı:** <t:{unlock_timestamp}:R> ({time_str} sonra)"
                     ),
-                    color=discord.Color.gold(),
-                    timestamp=discord.utils.utcnow()
+                    color=discord.Color.orange()
                 )
-                ticket_embed.set_footer(text="İşleminiz bittiğinde aşağıdaki '🔒 Ticket'ı Kapat' butonuna basabilirsiniz.")
-                
-                await ticket_channel.send(content=f"🔔 {user.mention} @here", embed=ticket_embed, view=CloseTicketView())
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
 
-                db.record_claim(user.id, service_id, f"TICKET: #{ticket_channel.name}", is_vip=user_is_vip)
+            # 6. SPECIAL TICKET FLOW FOR MailChecker, Nitro Promo & Spotify Premium
+            is_ticket_service = service.get("requires_ticket") or (service_id in ["mailchecker_tool", "nitro_promo", "spotify_premium_vip"])
+            if is_ticket_service:
+                guild = interaction.guild
+                if not guild:
+                    await interaction.followup.send("❌ Ticket açma işlemi sunucuda gerçekleştirilmelidir.", ephemeral=True)
+                    return
 
+                if service_id == "nitro_promo":
+                    prefix_str = "nitro-promo"
+                elif service_id == "spotify_premium_vip":
+                    prefix_str = "spotify-premium"
+                else:
+                    prefix_str = "mailchecker"
+
+                channel_name = f"📩-{prefix_str}-{user.name[:10]}".lower().replace(" ", "-")
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(view_channel=False),
+                    user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, attach_files=True),
+                    guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
+                }
+
+                cfg = db.get_config()
+                admin_role_id = cfg.get("admin_role_id", 0)
+                if admin_role_id:
+                    admin_role = guild.get_role(int(admin_role_id))
+                    if admin_role:
+                        overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
+
+                try:
+                    ticket_channel = await guild.create_text_channel(
+                        name=channel_name,
+                        overwrites=overwrites,
+                        topic=f"{service['name']} Talebi - {user.name} ({user.id})"
+                    )
+
+                    ticket_embed = discord.Embed(
+                        title=f"🛠️ {service['name']} Talebi Alındı!",
+                        description=(
+                            f"Merhaba {user.mention}!\n\n"
+                            f"📌 **{service['name']}** talebiniz başarıyla oluşturuldu.\n"
+                            f"Yetkililerimiz (Efe / Admin) en kısa sürede **size özel canlı URL / Kodu** "
+                            f"bu kanala manuel olarak iletecektir.\n\n"
+                            f"⏱️ Lütfen bekleyin ve kanal bildirimlerinizi açık tutun!"
+                        ),
+                        color=discord.Color.gold(),
+                        timestamp=discord.utils.utcnow()
+                    )
+                    ticket_embed.set_footer(text="İşleminiz bittiğinde aşağıdaki '🔒 Ticket'ı Kapat' butonuna basabilirsiniz.")
+                    
+                    await ticket_channel.send(content=f"🔔 {user.mention} @here", embed=ticket_embed, view=CloseTicketView())
+
+                    db.record_claim(user.id, service_id, f"TICKET: #{ticket_channel.name}", is_vip=user_is_vip)
+
+                    success_embed = discord.Embed(
+                        title="🎫 Ticket Kanalınız Açıldı!",
+                        description=f"**{service['name']}** talebiniz için özel kanal oluşturuldu:\n👉 {ticket_channel.mention}\n\nLütfen kanala giderek yetkilimizin size özel kodunuzu/linkinizi vermesini bekleyin.",
+                        color=discord.Color.green()
+                    )
+                    await interaction.followup.send(embed=success_embed, ephemeral=True)
+
+                    if interaction.guild:
+                        await log_claim(interaction.guild, user, service, f"TICKET: #{ticket_channel.name}", is_vip=user_is_vip)
+                    return
+
+                except Exception as e:
+                    await interaction.followup.send(f"❌ Ticket kanalı oluşturulurken hata oluştu: {e}", ephemeral=True)
+                    return
+
+            # 7. STANDARD STOCK CLAIM & RETRIEVAL
+            is_unlimited = (service_id in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"]) or service.get("is_unlimited", False)
+            stock_count = db.get_stock_count(service_id)
+
+            if stock_count <= 0:
+                embed = discord.Embed(
+                    title="❌ Stok Tükenmiş!",
+                    description=f"**{service['name']}** servisinde şu anda hesap bulunmamaktadır.\nYetkililer en kısa sürede stok yükleyecektir!",
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
+            account_data = db.get_stock_account(service_id)
+            if not account_data:
+                await interaction.followup.send("❌ Stok çekilirken bir hata oluştu, lütfen tekrar deneyin.", ephemeral=True)
+                return
+
+            # RECORD CLAIM
+            db.record_claim(user.id, service_id, account_data, is_vip=user_is_vip)
+
+            dm_embed = discord.Embed(
+                title=f"{service.get('emoji', '🎁')} {service['name']} Hesabınız Hazır!",
+                description="Hesap bilgileriniz / yayın linkiniz aşağıda verilmiştir. Güle güle kullanın!",
+                color=discord.Color.gold() if service.get("category") == "vip" else discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            )
+            dm_embed.add_field(
+                name="🔑 Hesap / Link Bilgileri",
+                value=f"```\n{account_data}\n```",
+                inline=False
+            )
+            
+            stk_rem_txt = "∞ Sınırsız (Random)" if is_unlimited else f"{db.get_stock_count(service_id)} adet"
+            dm_embed.add_field(
+                name="ℹ️ Bilgilendirme",
+                value=f"Günlük Kullanılan Hak: **{claims_count + 1}/{daily_limit}**\nServiste Kalan Stok: **{stk_rem_txt}**",
+                inline=False
+            )
+            dm_embed.add_field(
+                name="⚠️ Hatalı Stok mu Geldi?",
+                value="Hesabınız çalışmıyorsa sunucumuzdaki paneldan **`⚠️ Hatalı Stok Bildir`** butonuna tıklayarak hataya dair **ekran görüntüsü (görsel)** iletebilirsiniz!",
+                inline=False
+            )
+            dm_embed.add_field(
+                name="⚖️ Yasal Uyarı & Sorumluluk Reddi",
+                value="Temin edilen hesap ve yayın linklerinin kullanım sorumluluğu tamamen kullanıcıya aittir. LeaksTr hiçbir yasal sorumluluk kabul etmez.",
+                inline=False
+            )
+            dm_embed.set_footer(text="LeaksTr Generator System • 7/24 Otomatik Hizmet")
+
+            dm_sent = False
+            try:
+                await user.send(embed=dm_embed)
+                dm_sent = True
+            except Exception:
+                dm_sent = False
+
+            if dm_sent:
                 success_embed = discord.Embed(
-                    title="🎫 Ticket Kanalınız Açıldı!",
-                    description=f"**{service['name']}** talebiniz için özel kanal oluşturuldu:\n👉 {ticket_channel.mention}\n\nLütfen kanala giderek yetkilimizin size özel kodunuzu/linkinizi vermesini bekleyin.",
+                    title="✅ Stok Teslim Edildi!",
+                    description=f"**{service['name']}** hesabınız **DM (Direkt Mesaj)** kutunuza başarıyla gönderildi!\nLütfen DM kutunuzu kontrol edin.",
                     color=discord.Color.green()
                 )
                 await interaction.followup.send(embed=success_embed, ephemeral=True)
+            else:
+                fallback_embed = discord.Embed(
+                    title="⚠️ DM Kutunuz Kapalı!",
+                    description=f"DM kutunuz kapalı olduğu için mesaj gönderilemedi. Hesabınız aşağıdadır (Sadece siz görüyorsunuz):\n\n**🔑 Hesap / Link Bilgisi:**\n```\n{account_data}\n```\n\n⚠️ *Hesabınız çalışmıyorsa paneldan '⚠️ Hatalı Stok Bildir' butonuna basarak ekran görüntüsü iletin.*",
+                    color=discord.Color.yellow()
+                )
+                fallback_embed.set_footer(text="Lütfen gelecekteki alımlar için sunucu DM'lerinizi açın!")
+                await interaction.followup.send(embed=fallback_embed, ephemeral=True)
 
-                if interaction.guild:
-                    await log_claim(interaction.guild, user, service, f"TICKET: #{ticket_channel.name}", is_vip=user_is_vip)
-                return
+            if interaction.guild:
+                try:
+                    await log_claim(interaction.guild, user, service, account_data, is_vip=user_is_vip)
+                except Exception as log_err:
+                    print(f"Log claim hatası: {log_err}")
 
-            except Exception as e:
-                await interaction.followup.send(f"❌ Ticket kanalı oluşturulurken hata oluştu: {e}", ephemeral=True)
-                return
-
-        # 7. STANDARD STOCK CLAIM & RETRIEVAL
-        is_unlimited = (service_id in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"]) or service.get("is_unlimited", False)
-        stock_count = db.get_stock_count(service_id)
-
-        if stock_count <= 0:
-            embed = discord.Embed(
-                title="❌ Stok Tükenmiş!",
-                description=f"**{service['name']}** servisinde şu anda hesap bulunmamaktadır.\nYetkililer en kısa sürede stok yükleyecektir!",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        account_data = db.get_stock_account(service_id)
-        if not account_data:
-            await interaction.followup.send("❌ Stok çekilirken bir hata oluştu, lütfen tekrar deneyin.", ephemeral=True)
-            return
-
-        # RECORD CLAIM
-        db.record_claim(user.id, service_id, account_data, is_vip=user_is_vip)
-
-        dm_embed = discord.Embed(
-            title=f"{service.get('emoji', '🎁')} {service['name']} Hesabınız Hazır!",
-            description="Hesap bilgileriniz / yayın linkiniz aşağıda verilmiştir. Güle güle kullanın!",
-            color=discord.Color.gold() if service.get("category") == "vip" else discord.Color.green(),
-            timestamp=discord.utils.utcnow()
-        )
-        dm_embed.add_field(
-            name="🔑 Hesap / Link Bilgileri",
-            value=f"```\n{account_data}\n```",
-            inline=False
-        )
-        
-        stk_rem_txt = "∞ Sınırsız (Random)" if is_unlimited else f"{db.get_stock_count(service_id)} adet"
-        dm_embed.add_field(
-            name="ℹ️ Bilgilendirme",
-            value=f"Günlük Kullanılan Hak: **{claims_count + 1}/{daily_limit}**\nServiste Kalan Stok: **{stk_rem_txt}**",
-            inline=False
-        )
-        dm_embed.add_field(
-            name="⚠️ Hatalı Stok mu Geldi?",
-            value="Hesabınız çalışmıyorsa sunucumuzdaki paneldan **`⚠️ Hatalı Stok Bildir`** butonuna tıklayarak hataya dair **ekran görüntüsü (görsel)** iletebilirsiniz!",
-            inline=False
-        )
-        dm_embed.add_field(
-            name="⚖️ Yasal Uyarı & Sorumluluk Reddi",
-            value="Temin edilen hesap ve yayın linklerinin kullanım sorumluluğu tamamen kullanıcıya aittir. LeaksTr hiçbir yasal sorumluluk kabul etmez.",
-            inline=False
-        )
-        dm_embed.set_footer(text="LeaksTr Generator System • 7/24 Otomatik Hizmet")
-
-        dm_sent = False
-        try:
-            await user.send(embed=dm_embed)
-            dm_sent = True
-        except Exception:
-            dm_sent = False
-
-        if dm_sent:
-            success_embed = discord.Embed(
-                title="✅ Stok Teslim Edildi!",
-                description=f"**{service['name']}** hesabınız **DM (Direkt Mesaj)** kutunuza başarıyla gönderildi!\nLütfen DM kutunuzu kontrol edin.",
-                color=discord.Color.green()
-            )
-            await interaction.followup.send(embed=success_embed, ephemeral=True)
-        else:
-            fallback_embed = discord.Embed(
-                title="⚠️ DM Kutunuz Kapalı!",
-                description=f"DM kutunuz kapalı olduğu için mesaj gönderilemedi. Hesabınız aşağıdadır (Sadece siz görüyorsunuz):\n\n**🔑 Hesap / Link Bilgisi:**\n```\n{account_data}\n```\n\n⚠️ *Hesabınız çalışmıyorsa paneldan '⚠️ Hatalı Stok Bildir' butonuna basarak ekran görüntüsü iletin.*",
-                color=discord.Color.yellow()
-            )
-            fallback_embed.set_footer(text="Lütfen gelecekteki alımlar için sunucu DM'lerinizi açın!")
-            await interaction.followup.send(embed=fallback_embed, ephemeral=True)
-
-        if interaction.guild:
-            await log_claim(interaction.guild, user, service, account_data, is_vip=user_is_vip)
+        except Exception as err:
+            print(f"ServiceSelect callback hatası: {err}")
+            try:
+                await interaction.followup.send(f"❌ Stok alınırken bir hata oluştu: {err}", ephemeral=True)
+            except Exception:
+                pass
 
 
 class CategorySelectView(discord.ui.View):
