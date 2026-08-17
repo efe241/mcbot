@@ -400,7 +400,7 @@ class DatabaseManager:
             if service_id not in stocks or len(stocks[service_id]) == 0:
                 return None
 
-            is_unlimited = (service_id in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip"]) or (service and service.get("is_unlimited", False))
+            is_unlimited = (service_id in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"]) or (service and service.get("is_unlimited", False))
 
             if is_unlimited:
                 return random.choice(stocks[service_id])

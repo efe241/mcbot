@@ -169,7 +169,7 @@ async def log_claim(guild: discord.Guild, user: discord.User, service: dict, acc
             embed.add_field(name="📦 Servis", value=f"{service.get('emoji', '🎁')} **{service.get('name')}**", inline=True)
             embed.add_field(name="👑 Üyelik Türü", value="⭐ VIP" if is_vip else "🎁 Free", inline=True)
             
-            is_unlimited = service.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip"] or service.get("is_unlimited", False)
+            is_unlimited = service.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"] or service.get("is_unlimited", False)
             stk_txt = "∞ Sınırsız" if is_unlimited else f"{db.get_stock_count(service['id'])} adet"
             embed.set_footer(text=f"Kalan Stok: {stk_txt}")
             await channel.send(embed=embed)

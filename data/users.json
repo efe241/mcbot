@@ -13,11 +13,11 @@
     "last_claim_timestamp": 0,
     "daily_claims": [],
     "last_wheel_spin": 1786894689.4327571,
-    "message_count": 31
+    "message_count": 37
   },
   "1505283977630580868": {
-    "is_vip": true,
-    "vip_expires": 1786988836.6389804,
+    "is_vip": false,
+    "vip_expires": 0,
     "claims": [
       {
         "service_id": "nitro_promo",
@@ -45,7 +45,7 @@
     "last_claim_timestamp": 0,
     "daily_claims": [],
     "last_wheel_spin": 0,
-    "invites": 0,
+    "invites": 1,
     "coins": 0,
     "message_count": 3,
     "invited_by": null
@@ -61,6 +61,71 @@
     "invites": 0,
     "coins": 0,
     "message_count": 17,
+    "invited_by": null
+  },
+  "1309084909465505792": {
+    "is_vip": false,
+    "vip_expires": 0,
+    "claims": [],
+    "total_claims": 0,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 0,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 3,
+    "invited_by": null
+  },
+  "1071091990453829713": {
+    "is_vip": false,
+    "vip_expires": 0,
+    "claims": [],
+    "total_claims": 0,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 0,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 10,
+    "invited_by": null
+  },
+  "858435829252227092": {
+    "is_vip": false,
+    "vip_expires": 0,
+    "claims": [],
+    "total_claims": 0,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 0,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 1,
+    "invited_by": null
+  },
+  "330151717356306433": {
+    "is_vip": false,
+    "vip_expires": 0,
+    "claims": [],
+    "total_claims": 0,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 0,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 2,
+    "invited_by": null
+  },
+  "1508774644830965760": {
+    "is_vip": false,
+    "vip_expires": 0,
+    "claims": [],
+    "total_claims": 0,
+    "last_claim_timestamp": 0,
+    "daily_claims": [],
+    "last_wheel_spin": 0,
+    "invites": 0,
+    "coins": 0,
+    "message_count": 1,
     "invited_by": null
   }
 }

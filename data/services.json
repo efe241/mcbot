@@ -163,5 +163,13 @@
     "emoji": "🎮",
     "description": "VIP Özel Twitch Cookie Hesabı (Sınırsız)",
     "is_unlimited": true
+  },
+  {
+    "id": "simmarket_vip",
+    "name": "SimMarket VIP (Sınırsız)",
+    "category": "vip",
+    "emoji": "✈️",
+    "description": "VIP Özel SimMarket Hesabı (Sınırsız)",
+    "is_unlimited": true
   }
 ]
