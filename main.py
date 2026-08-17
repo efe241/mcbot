@@ -84,7 +84,15 @@ def is_vip_user(member: discord.Member) -> bool:
     vip_role_id = config.get("vip_role_id", 0)
     if vip_role_id and any(r.id == int(vip_role_id) for r in member.roles):
         return True
-    return any("vip" in r.name.lower() for r in member.roles)
+    
+    # Strict role name check: Only match if the role explicitly contains the whole word 'VIP'
+    import re
+    for r in member.roles:
+        if r.name == "@everyone":
+            continue
+        if re.search(r'\bvip\b', r.name, re.IGNORECASE):
+            return True
+    return False
 
 def is_admin_user(member: discord.Member) -> bool:
     if not isinstance(member, discord.Member):
