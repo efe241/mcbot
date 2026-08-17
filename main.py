@@ -1593,6 +1593,182 @@ async def scheduled_hitabe_task():
         print(f"⚠️ [HİTABE HATA]: {e}")
 
 
+# --- AUTOMATIC TRIVIA & QUIZ CHAT GAME SYSTEM ---
+TRIVIA_QUESTIONS = [
+    {
+        "question": "Türkiye Cumhuriyeti'nin kurucusu ve ilk Cumhurbaşkanı kimdir?",
+        "answers": ["atatürk", "mustafa kemal", "mustafa kemal atatürk", "gazi mustafa kemal", "gazi mustafa kemal atatürk"],
+        "category": "Tarih 📜"
+    },
+    {
+        "question": "Türkiye'nin başkenti neresidir?",
+        "answers": ["ankara"],
+        "category": "Coğrafya 🌍"
+    },
+    {
+        "question": "Minecraft'ta obsidyen kazmak için hangi kazma türü gereklidir?",
+        "answers": ["elmas", "elmas kazma", "diamond", "diamond pickaxe", "netherite", "netherit kazma"],
+        "category": "Oyun 🎮"
+    },
+    {
+        "question": "Güneş sistemimizdeki en büyük gezegen hangisidir?",
+        "answers": ["jüpiter", "jupiter"],
+        "category": "Bilim & Uzay 🚀"
+    },
+    {
+        "question": "Steam platformunun ve Half-Life serisinin geliştiricisi olan şirket hangisidir?",
+        "answers": ["valve", "valve corporation"],
+        "category": "Oyun & Teknoloji 💻"
+    },
+    {
+        "question": "Matematik Sorusu: 15 x 6 işleminin sonucu kaçtır?",
+        "answers": ["90", "doksan"],
+        "category": "Matematik 🧠"
+    },
+    {
+        "question": "İstanbul hangi yılda fethedilmiştir?",
+        "answers": ["1453", "bin dört yüz elli üç"],
+        "category": "Tarih 📜"
+    },
+    {
+        "question": "Netflix ilk olarak hangi ülkede kurulmuştur?",
+        "answers": ["amerika", "abd", "usa", "amerika birleşik devletleri"],
+        "category": "Genel Kültür 🎬"
+    },
+    {
+        "question": "GTA 5'teki 3 ana karakterden birinin adını yazın? (Franklin, Michael veya ...)",
+        "answers": ["trevor", "michael", "franklin", "trevor philips", "michael de santa", "franklin clinton"],
+        "category": "Oyun 🎮"
+    },
+    {
+        "question": "Dünyanın uydusunun adı nedir?",
+        "answers": ["ay", "the moon", "moon"],
+        "category": "Uzay 🌙"
+    },
+    {
+        "question": "İlk Türk astronotumuzun adı nedir?",
+        "answers": ["alper gezeravcı", "alper gezeravci", "alper"],
+        "category": "Bilim & Uzay 🚀"
+    },
+    {
+        "question": "CS:GO / CS2 oyununda C4 bombası kurulduktan sonra kaç saniye sonra patlar?",
+        "answers": ["40", "40 saniye", "40 sn", "kırk"],
+        "category": "Oyun 🎮"
+    },
+    {
+        "question": "Matematik Sorusu: 128 / 4 işleminin sonucu kaçtır?",
+        "answers": ["32", "otuz iki"],
+        "category": "Matematik 🧠"
+    },
+    {
+        "question": "Mona Lisa tablosunu yapan ünlü İtalyan ressam kimdir?",
+        "answers": ["leonardo da vinci", "da vinci", "leonardo"],
+        "category": "Sanat & Kültür 🎨"
+    },
+    {
+        "question": "Dünyanın en yüksek dağı hangisidir?",
+        "answers": ["everest", "everest dağı", "mount everest"],
+        "category": "Coğrafya 🌍"
+    },
+    {
+        "question": "Hızlı Yazma Sorusu: Şu kelimeyi harfi harfine ilk yazan kazanır: `LeaksTr2026`",
+        "answers": ["leakstr2026"],
+        "category": "Hızlı Refleks ⚡"
+    },
+    {
+        "question": "Hızlı Yazma Sorusu: Şu cümleyi ilk yazan kazanır: `Ne Mutlu Türküm Diyene`",
+        "answers": ["ne mutlu türküm diyene", "ne mutlu turkum diyene", "ne mutlu türk'üm diyene"],
+        "category": "Hızlı Refleks ⚡"
+    },
+    {
+        "question": "Futbolda bir takım sahaya kaç oyuncuyla çıkar?",
+        "answers": ["11", "on bir"],
+        "category": "Spor ⚽"
+    },
+    {
+        "question": "Periyodik tabloda 'Au' sembolü hangi elementi temsil eder?",
+        "answers": ["altın", "altin", "gold"],
+        "category": "Kimya 🧪"
+    },
+    {
+        "question": "GTA San Andreas oyununun ana karakterinin adı nedir?",
+        "answers": ["cj", "carl johnson", "carl"],
+        "category": "Oyun 🎮"
+    }
+]
+
+active_trivia = {
+    "question_data": None,
+    "channel_id": None,
+    "started_at": 0,
+    "is_active": False
+}
+
+async def start_trivia_in_channel(channel: discord.TextChannel):
+    global active_trivia
+    if active_trivia["is_active"]:
+        return
+
+    q = random.choice(TRIVIA_QUESTIONS)
+    active_trivia["question_data"] = q
+    active_trivia["channel_id"] = channel.id
+    active_trivia["started_at"] = time.time()
+    active_trivia["is_active"] = True
+
+    embed = discord.Embed(
+        title="🧠 ⚡ CANLI BİLGİ & REFLEKS YARIŞMASI! ⚡ 🧠",
+        description=(
+            f"🏆 **Kategori:** `{q['category']}`\n\n"
+            f"❓ **SORU:**\n> **{q['question']}**\n\n"
+            f"⏱️ **Süre:** `60 Saniye`\n"
+            f"🎁 **ÖDÜL:** `+1 Ekstra Stok Hakkı (Bekleme Süresi Sıfırlanır)`\n\n"
+            f"💡 **Nasıl Kazanırım?** Doğru cevabı bu kanala **ilk yazan** ödülü kapar!"
+        ),
+        color=discord.Color.gold(),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_footer(text="LeaksTr Chat Oyunları • Doğru cevabı chat'e yazın!")
+    if channel.guild and channel.guild.icon:
+        embed.set_thumbnail(url=channel.guild.icon.url)
+
+    await channel.send(content="🔔 @here **Yeni Bilgi Yarışması Başladı!**", embed=embed)
+
+    async def timeout_watcher():
+        await asyncio.sleep(60)
+        if active_trivia["is_active"] and active_trivia["question_data"] == q:
+            active_trivia["is_active"] = False
+            timeout_embed = discord.Embed(
+                title="⌛ SÜRE DOLDU! KİMSE BİLEMEDİ!",
+                description=f"Maalesef 60 saniye içinde doğru cevap gelmedi.\n\n💡 **Doğru Cevap:** `{q['answers'][0].title()}`",
+                color=discord.Color.red(),
+                timestamp=discord.utils.utcnow()
+            )
+            try:
+                await channel.send(embed=timeout_embed)
+            except Exception:
+                pass
+
+    asyncio.create_task(timeout_watcher())
+
+
+@tasks.loop(minutes=75)
+async def scheduled_trivia_task():
+    try:
+        config = db.get_config()
+        channel_id = config.get("announcement_channel_id", "1538560333545738281")
+        channel = bot.get_channel(int(channel_id))
+        if not channel:
+            try:
+                channel = await bot.fetch_channel(int(channel_id))
+            except Exception:
+                channel = None
+
+        if channel:
+            await start_trivia_in_channel(channel)
+    except Exception as e:
+        print(f"⚠️ [TRIVIA HATA]: {e}")
+
+
 # --- BOT EVENTS & INVITE TRACKER & MESSAGE TRACKER ---
 @bot.event
 async def on_ready():
@@ -1616,6 +1792,10 @@ async def on_ready():
     if not scheduled_hitabe_task.is_running():
         scheduled_hitabe_task.start()
         print("🇹🇷 12 Saatte Bir Gençliğe Hitabe Gönderme Zamanlayıcısı Başlatıldı!")
+
+    if not scheduled_trivia_task.is_running():
+        scheduled_trivia_task.start()
+        print("🧠 75 Dakikada Bir Canlı Bilgi Yarışması Zamanlayıcısı Başlatıldı!")
 
     # 4. Background non-blocking invite cache & sync
     async def bg_startup_tasks():
@@ -1657,10 +1837,49 @@ async def on_error(event, *args, **kwargs):
 
 @bot.event
 async def on_message(message: discord.Message):
+    global active_trivia
     if message.author.bot:
         return
+
     if message.guild:
         db.record_user_message(message.author.id)
+
+    # TRIVIA ANSWER CHECK
+    if active_trivia["is_active"] and active_trivia["channel_id"] == message.channel.id:
+        q = active_trivia["question_data"]
+        user_ans = message.content.strip().lower()
+        if any(ans in user_ans for ans in q["answers"]):
+            active_trivia["is_active"] = False
+            
+            # REWARD USER
+            db.reset_user_cooldown(message.author.id)
+            db.add_event_log(
+                event_type="TRIVIA",
+                user_id=message.author.id,
+                username=message.author.name,
+                title="Bilgi Yarışmasını Kazandı",
+                details=f"Soru: '{q['question'][:25]}...' | Cevap: '{user_ans}'",
+                service_id="trivia_reward"
+            )
+
+            win_embed = discord.Embed(
+                title="🎉 DOĞRU CEVAP! KAZANAN BELLİ OLDU! 🎉",
+                description=(
+                    f"👏 **Tebrikler {message.author.mention}!**\n\n"
+                    f"✅ **Doğru Cevap:** `{q['answers'][0].title()}`\n\n"
+                    f"🎁 **ÖDÜLÜNÜZ HESABINIZA TANIMLANDI:**\n"
+                    f"• Günlük stok alma hakkınız sıfırlandı!\n"
+                    f"• Hemen sunucu paneline giderek dilediğiniz Free veya VIP servisten yeni hesabınızı alabilirsiniz. 🚀"
+                ),
+                color=discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            )
+            win_embed.set_footer(text=f"Kazanan: {message.author.name} • LeaksTr Bilgi Yarışması")
+            try:
+                await message.reply(embed=win_embed)
+            except Exception:
+                await message.channel.send(content=f"{message.author.mention}", embed=win_embed)
+
     await bot.process_commands(message)
 
 @bot.event
@@ -2183,6 +2402,27 @@ async def hitabe_gonder_command(interaction: discord.Interaction, kanal: discord
         await safe_respond(interaction, content=f"🇹🇷 Gençliğe Hitabe başarıyla {target_channel.mention} kanalına gönderildi!", ephemeral=True)
     except Exception as e:
         await safe_respond(interaction, content=f"❌ **Gönderme Hatası:** {e}\n*(Botun {target_channel.mention} kanalında 'Mesaj Gönder' ve 'Embed Ekle' yetkisi olduğundan emin olun!)*", ephemeral=True)
+
+
+@bot.tree.command(name="bilgi-yarismasi", description="🧠 Belirtilen kanalda anında ödüllü Bilgi / Refleks Yarışması başlatır (Admin)")
+@app_commands.default_permissions(administrator=True)
+@app_commands.describe(kanal="Yarışmanın başlayacağı kanal (İsteğe bağlı, seçilmezse komutun yazıldığı kanalda başlar)")
+async def bilgi_yarismasi_command(interaction: discord.Interaction, kanal: discord.TextChannel = None):
+    if not is_admin_user(interaction.user):
+        await safe_respond(interaction, content="❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
+        return
+
+    target_channel = kanal or interaction.channel
+    if not target_channel:
+        await safe_respond(interaction, content="❌ Hedef kanal belirlenemedi!", ephemeral=True)
+        return
+
+    if active_trivia["is_active"]:
+        await safe_respond(interaction, content="⚠️ Şu an zaten aktif bir bilgi yarışması devam ediyor!", ephemeral=True)
+        return
+
+    await start_trivia_in_channel(target_channel)
+    await safe_respond(interaction, content=f"🧠 Ödüllü Bilgi Yarışması başarıyla {target_channel.mention} kanalında başlatıldı!", ephemeral=True)
 
 
 @bot.tree.command(name="hak-listesi", description="📋 Kayıtlı üyelerin kalan günlük haklarını ve bekleme sürelerini listeler (Admin)")
