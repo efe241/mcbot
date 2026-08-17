@@ -28,12 +28,7 @@ DEFAULT_CONFIG = {
     "log_channel_id": 0,
     "required_status": "LeaksTr",
     "min_account_age_days": 7,
-    "invites_for_vip": 5,
-    "vip_coin_cost": 20,
-    "nitro_coin_cost": 100,
-    "gemini_coin_cost": 50,
-    "spotify_coin_cost": 100,
-    "hesapcomtr_link": "https://hesap.com.tr"
+    "invites_for_vip": 5
 }
 
 PRIME_COOKIE_TEXT = """# Netscape HTTP Cookie File
@@ -185,27 +180,43 @@ DEFAULT_SERVICES = [
         "is_unlimited": False
     },
     {
-        "id": "nitro_promo",
-        "name": "Discord Nitro Promo (100 Coin)",
+        "id": "twitch_vip",
+        "name": "Twitch Cookie VIP (Sınırsız)",
         "category": "vip",
-        "emoji": "🚀",
-        "description": "100 Coin İle Satın Alınabilir Discord Nitro Promo (Ticket)",
-        "requires_ticket": True
-    },
-    {
-        "id": "gemini_pro",
-        "name": "Google Gemini Pro (50 Coin)",
-        "category": "vip",
-        "emoji": "🤖",
-        "description": "50 Coin İle Sınırsız Alınabilir Google Gemini Pro Hesap",
+        "emoji": "🎮",
+        "description": "VIP Özel Twitch Cookie Hesabı (Sınırsız)",
         "is_unlimited": True
     },
     {
+        "id": "simmarket_vip",
+        "name": "SimMarket VIP (Sınırsız)",
+        "category": "vip",
+        "emoji": "✈️",
+        "description": "VIP Özel SimMarket Hesabı (Sınırsız)",
+        "is_unlimited": True
+    },
+    {
+        "id": "gemini_pro",
+        "name": "Google Gemini Pro (Sınırsız)",
+        "category": "vip",
+        "emoji": "🤖",
+        "description": "VIP Özel Sınırsız Google Gemini Pro Hesap",
+        "is_unlimited": True
+    },
+    {
+        "id": "nitro_promo",
+        "name": "Discord Nitro Promo (Ticket)",
+        "category": "vip",
+        "emoji": "🚀",
+        "description": "VIP Özel Discord Nitro Promo (Ticket)",
+        "requires_ticket": True
+    },
+    {
         "id": "spotify_premium_vip",
-        "name": "Spotify Premium Bireysel (100 Coin)",
+        "name": "Spotify Premium Bireysel (Ticket)",
         "category": "vip",
         "emoji": "🎧",
-        "description": "100 Coin İle Satın Alınabilir Spotify Premium Bireysel (Ticket)",
+        "description": "VIP Özel Spotify Premium Bireysel (Ticket)",
         "requires_ticket": True
     }
 ]
@@ -249,6 +260,7 @@ class DatabaseManager:
                 stocks["tod_tv_vip"] = ["emirhankorkut@yahoo.com.tr:2003Emirhan"]
                 stocks["prime_video_vip"] = [PRIME_COOKIE_TEXT]
                 stocks["smm_vip"] = ["https://cheapestsmmpanels.com:Anonhax:20112008@"] * 10
+                stocks["simmarket_vip"] = ["dimitris9027@hotmail.com:quattro9027"]
                 _write_json(STOCKS_FILE, stocks)
             if not os.path.exists(USERS_FILE):
                 _write_json(USERS_FILE, {})
@@ -266,8 +278,6 @@ class DatabaseManager:
             for default_s in DEFAULT_SERVICES:
                 if default_s["id"] not in stocks:
                     stocks[default_s["id"]] = []
-            if "smm_vip" not in stocks or not stocks["smm_vip"]:
-                stocks["smm_vip"] = ["https://cheapestsmmpanels.com:Anonhax:20112008@"] * 10
             _write_json(STOCKS_FILE, stocks)
 
     # CONFIG MANAGEMENT
@@ -409,7 +419,7 @@ class DatabaseManager:
                 _write_json(STOCKS_FILE, stocks)
                 return account
 
-    # USER & VIP & INVITES & COIN & MESSAGE ACTIVITY MANAGEMENT
+    # USER & VIP & INVITES & MESSAGE ACTIVITY MANAGEMENT
     def get_user_data(self, user_id):
         user_str = str(user_id)
         with _lock:
@@ -424,7 +434,6 @@ class DatabaseManager:
                     "daily_claims": [],
                     "last_wheel_spin": 0,
                     "invites": 0,
-                    "coins": 0,
                     "message_count": 0,
                     "invited_by": None
                 }
@@ -444,7 +453,6 @@ class DatabaseManager:
                     "daily_claims": [],
                     "last_wheel_spin": 0,
                     "invites": 0,
-                    "coins": 0,
                     "message_count": 1,
                     "invited_by": None
                 }
@@ -458,40 +466,6 @@ class DatabaseManager:
             users = _read_json(USERS_FILE, {})
             u = users.get(user_str, {})
             return u.get("message_count", 0) > 0
-
-    def add_user_coins(self, user_id, amount: int):
-        user_str = str(user_id)
-        with _lock:
-            users = _read_json(USERS_FILE, {})
-            u = users.get(user_str, {
-                "is_vip": False,
-                "vip_expires": 0,
-                "claims": [],
-                "total_claims": 0,
-                "last_claim_timestamp": 0,
-                "daily_claims": [],
-                "last_wheel_spin": 0,
-                "invites": 0,
-                "coins": 0,
-                "message_count": 0
-            })
-            u["coins"] = u.get("coins", 0) + amount
-            users[user_str] = u
-            _write_json(USERS_FILE, users)
-            return u["coins"]
-
-    def remove_user_coins(self, user_id, amount: int) -> bool:
-        user_str = str(user_id)
-        with _lock:
-            users = _read_json(USERS_FILE, {})
-            u = users.get(user_str, {})
-            current = u.get("coins", 0)
-            if current < amount:
-                return False
-            u["coins"] = current - amount
-            users[user_str] = u
-            _write_json(USERS_FILE, users)
-            return True
 
     def add_user_invite(self, inviter_id):
         inviter_str = str(inviter_id)
@@ -507,7 +481,6 @@ class DatabaseManager:
                     "daily_claims": [],
                     "last_wheel_spin": 0,
                     "invites": 1,
-                    "coins": 0,
                     "message_count": 0,
                     "invited_by": None
                 }
@@ -536,7 +509,6 @@ class DatabaseManager:
                 "daily_claims": [],
                 "last_wheel_spin": 0,
                 "invites": 0,
-                "coins": 0,
                 "message_count": 0
             })
             u["is_vip"] = is_vip
@@ -674,7 +646,7 @@ class DatabaseManager:
                 random_hex = os.urandom(4).hex().upper()
                 key_code = f"LEAK-{random_hex[:4]}-{random_hex[4:]}"
                 keys[key_code] = {
-                    "reward_type": reward_type, # 'vip', 'claim', 'steam', 'coin'
+                    "reward_type": reward_type, # 'vip', 'claim', 'steam'
                     "reward_value": reward_value,
                     "used": False,
                     "used_by": None,
@@ -711,10 +683,6 @@ class DatabaseManager:
 
                 self.set_user_vip(user_id, True, duration_hours=hours)
                 msg = f"⭐ Tebrikler! **{hours} Saatlik VIP Üyelik** kazandınız!"
-            elif reward_type == "coin":
-                amount = int(key_data.get("reward_value", 100))
-                total = self.add_user_coins(user_id, amount)
-                msg = f"🪙 Tebrikler! **{amount} Coin** kazandınız! (Güncel Bakiyeniz: {total} Coin)"
             elif reward_type == "claim":
                 self.reset_user_cooldown(user_id)
                 msg = "🎁 Tebrikler! **1 Ekstra Stok Hakkı** kazandınız (Bekleme süreniz sıfırlandı)!"
@@ -743,7 +711,6 @@ class DatabaseManager:
                     "user_id": u_id,
                     "claims": u_data.get("total_claims", 0),
                     "invites": u_data.get("invites", 0),
-                    "coins": u_data.get("coins", 0),
                     "is_vip": u_data.get("is_vip", False)
                 })
             user_list.sort(key=lambda x: x["claims"], reverse=True)
@@ -760,7 +727,6 @@ class DatabaseManager:
             total_current_stock = sum(len(stk) for stk in stocks.values())
             
             total_claims_all_time = 0
-            total_coins_in_circulation = 0
             total_registered_users = len(users)
             total_vip_users = 0
             total_invites = 0
@@ -771,7 +737,6 @@ class DatabaseManager:
             for u_id, u_data in users.items():
                 t_claims = u_data.get("total_claims", 0)
                 total_claims_all_time += t_claims
-                total_coins_in_circulation += u_data.get("coins", 0)
                 if u_data.get("is_vip", False):
                     total_vip_users += 1
                 total_invites += u_data.get("invites", 0)
@@ -794,7 +759,6 @@ class DatabaseManager:
                 "total_services": total_services,
                 "total_current_stock": total_current_stock,
                 "total_claims_all_time": total_claims_all_time,
-                "total_coins_in_circulation": total_coins_in_circulation,
                 "total_registered_users": total_registered_users,
                 "total_vip_users": total_vip_users,
                 "total_invites": total_invites,
@@ -803,4 +767,3 @@ class DatabaseManager:
             }
 
 db = DatabaseManager()
-db.update_config("vip_daily_limit", 2)

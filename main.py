@@ -184,257 +184,15 @@ class CloseTicketView(discord.ui.View):
 
     @discord.ui.button(label="🔒 Ticket'ı Kapat", style=discord.ButtonStyle.danger, custom_id="btn_close_ticket")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("🔒 **Bu Ticket 5 saniye içinde kapatılıp silinecektir...**")
+        try:
+            await interaction.response.send_message("🔒 **Bu Ticket 5 saniye içinde kapatılıp silinecektir...**")
+        except Exception:
+            pass
         await asyncio.sleep(5)
         try:
             await interaction.channel.delete()
         except Exception as e:
             print(f"Ticket silme hatası: {e}")
-
-
-# --- COIN MARKET VIEW ---
-class CoinMarketView(discord.ui.View):
-    def __init__(self):
-        super().__init__(timeout=120)
-
-    @discord.ui.button(label="🎧 100 Coin İle Spotify Premium Al (Ticket)", style=discord.ButtonStyle.primary, emoji="🎧")
-    async def buy_spotify_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        user = interaction.user
-        guild = interaction.guild
-
-        if not guild:
-            await interaction.followup.send("❌ Bu işlem sadece sunucu içerisinde yapılabilir.", ephemeral=True)
-            return
-
-        user_id = user.id
-
-        # Deduct 100 Coins
-        success = db.remove_user_coins(user_id, 100)
-        if not success:
-            u_data = db.get_user_data(user_id)
-            current_coins = u_data.get("coins", 0)
-            embed = discord.Embed(
-                title="❌ Yetersiz Coin Bakiyesi!",
-                description=f"Spotify Premium Bireysel almak için **100 Coin** gereklidir.\n\n📌 **Mevcut Bakiyeniz:** `{current_coins} Coin`",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        channel_name = f"🎧-spotify-premium-{user.name[:10]}".lower().replace(" ", "-")
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, attach_files=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
-        }
-
-        cfg = db.get_config()
-        admin_role_id = cfg.get("admin_role_id", 0)
-        if admin_role_id:
-            admin_role = guild.get_role(int(admin_role_id))
-            if admin_role:
-                overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
-
-        try:
-            ticket_channel = await guild.create_text_channel(
-                name=channel_name,
-                overwrites=overwrites,
-                topic=f"100 Coin Spotify Premium Bireysel Talebi - {user.name} ({user.id})"
-            )
-
-            u_data = db.get_user_data(user_id)
-            ticket_embed = discord.Embed(
-                title="🎧 Spotify Premium Bireysel Talebi Alındı! (100 Coin)",
-                description=(
-                    f"Merhaba {user.mention}!\n\n"
-                    f"Hesabınızdan **100 Coin** başarıyla düşüldü (Kalan Bakiyeniz: `{u_data.get('coins', 0)} Coin`).\n\n"
-                    f"📌 **Spotify Premium Bireysel** davet/hesap talebiniz yetkililerimize iletildi.\n"
-                    f"Adminlerimiz (Efe / Yetkili) en kısa sürede **size özel Spotify Premium davet linkinizi veya hesabınızı** "
-                    f"bu kanala manuel olarak teslim edecektir.\n\n"
-                    f"⏱️ Lütfen bekleyin ve kanal bildirimlerinizi açık tutun!"
-                ),
-                color=discord.Color.green(),
-                timestamp=discord.utils.utcnow()
-            )
-            ticket_embed.set_footer(text="İşleminiz bittiğinde aşağıdaki '🔒 Ticket'ı Kapat' butonuna basabilirsiniz.")
-            
-            await ticket_channel.send(content=f"🔔 {user.mention} @here", embed=ticket_embed, view=CloseTicketView())
-
-            db.record_claim(user_id, "spotify_premium_vip", f"TICKET: #{ticket_channel.name} (100 Coin)", is_vip=True)
-
-            success_embed = discord.Embed(
-                title="🎫 Spotify Premium Ticket Kanalınız Açıldı!",
-                description=f"**100 Coin** düşüldü ve talebiniz için özel kanal oluşturuldu:\n👉 {ticket_channel.mention}\n\nLütfen kanala giderek yetkilimizin size özel Spotify Premium linkinizi/hesabınızı vermesini bekleyin.",
-                color=discord.Color.green()
-            )
-            await interaction.followup.send(embed=success_embed, ephemeral=True)
-
-        except Exception as e:
-            db.add_user_coins(user_id, 100) # Refund
-            await interaction.followup.send(f"❌ Ticket kanalı açılırken hata oluştu: {e}. 100 Coin bakiyeniz iade edildi.", ephemeral=True)
-
-    @discord.ui.button(label="🤖 50 Coin İle Gemini Pro Al", style=discord.ButtonStyle.success, emoji="🤖")
-    async def buy_gemini_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        user_id = interaction.user.id
-        
-        success = db.remove_user_coins(user_id, 50)
-        if not success:
-            u_data = db.get_user_data(user_id)
-            current_coins = u_data.get("coins", 0)
-            embed = discord.Embed(
-                title="❌ Yetersiz Coin Bakiyesi!",
-                description=f"Google Gemini Pro almak için **50 Coin** gereklidir.\n\n📌 **Mevcut Bakiyeniz:** `{current_coins} Coin`",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        account_data = db.get_stock_account("gemini_pro")
-        if not account_data:
-            db.add_user_coins(user_id, 50) # Refund
-            await interaction.followup.send("❌ Stok çekilirken hata oluştu. 50 Coin bakiyeniz iade edildi.", ephemeral=True)
-            return
-
-        u_data = db.get_user_data(user_id)
-        embed = discord.Embed(
-            title="🤖 Google Gemini Pro Hesabı Teslim Edildi!",
-            description=f"Hesabınızdan **50 Coin** düşüldü ve Gemini Pro hesabınız teslim edildi! 🚀\n\n📌 **Kalan Bakiyeniz:** `{u_data.get('coins', 0)} Coin`",
-            color=discord.Color.green()
-        )
-        embed.add_field(name="🔑 Google Gemini Pro Hesap (Mail:Şifre)", value=f"```\n{account_data}\n```", inline=False)
-        embed.set_footer(text="LeaksTr Coin Market • Sınırsız Random Stok • 7/24 Otomatik Teslimat")
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-    @discord.ui.button(label="🚀 100 Coin İle Nitro Promo Al (Ticket)", style=discord.ButtonStyle.primary, emoji="🚀")
-    async def buy_nitro_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        user = interaction.user
-        guild = interaction.guild
-
-        if not guild:
-            await interaction.followup.send("❌ Bu işlem sadece sunucu içerisinde yapılabilir.", ephemeral=True)
-            return
-
-        user_id = user.id
-
-        # Deduct 100 Coins
-        success = db.remove_user_coins(user_id, 100)
-        if not success:
-            u_data = db.get_user_data(user_id)
-            current_coins = u_data.get("coins", 0)
-            embed = discord.Embed(
-                title="❌ Yetersiz Coin Bakiyesi!",
-                description=f"Discord Nitro Promo almak için **100 Coin** gereklidir.\n\n📌 **Mevcut Bakiyeniz:** `{current_coins} Coin`",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        channel_name = f"🚀-nitro-promo-{user.name[:10]}".lower().replace(" ", "-")
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True, attach_files=True),
-            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
-        }
-
-        cfg = db.get_config()
-        admin_role_id = cfg.get("admin_role_id", 0)
-        if admin_role_id:
-            admin_role = guild.get_role(int(admin_role_id))
-            if admin_role:
-                overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
-
-        try:
-            ticket_channel = await guild.create_text_channel(
-                name=channel_name,
-                overwrites=overwrites,
-                topic=f"100 Coin Discord Nitro Promo Talebi - {user.name} ({user.id})"
-            )
-
-            u_data = db.get_user_data(user_id)
-            ticket_embed = discord.Embed(
-                title="🚀 Discord Nitro Promo Talebi Alındı! (100 Coin)",
-                description=(
-                    f"Merhaba {user.mention}!\n\n"
-                    f"Hesabınızdan **100 Coin** başarıyla düşüldü (Kalan Bakiyeniz: `{u_data.get('coins', 0)} Coin`).\n\n"
-                    f"📌 **Discord Nitro Promo** talebiniz yetkililerimize iletildi.\n"
-                    f"Adminlerimiz (Efe / Yetkili) en kısa sürede **size özel çalışan Nitro Promo linkinizi/kodunuzu** "
-                    f"bu kanala manuel olarak teslim edecektir.\n\n"
-                    f"⏱️ Lütfen bekleyin ve kanal bildirimlerinizi açık tutun!"
-                ),
-                color=discord.Color.purple(),
-                timestamp=discord.utils.utcnow()
-            )
-            ticket_embed.set_footer(text="İşleminiz bittiğinde aşağıdaki '🔒 Ticket'ı Kapat' butonuna basabilirsiniz.")
-            
-            await ticket_channel.send(content=f"🔔 {user.mention} @here", embed=ticket_embed, view=CloseTicketView())
-
-            db.record_claim(user_id, "nitro_promo", f"TICKET: #{ticket_channel.name} (100 Coin)", is_vip=True)
-
-            success_embed = discord.Embed(
-                title="🎫 Nitro Promo Ticket Kanalınız Açıldı!",
-                description=f"**100 Coin** düşüldü ve talebiniz için özel kanal oluşturuldu:\n👉 {ticket_channel.mention}\n\nLütfen kanala giderek yetkilimizin size özel Nitro Promo kodunuzu vermesini bekleyin.",
-                color=discord.Color.green()
-            )
-            await interaction.followup.send(embed=success_embed, ephemeral=True)
-
-        except Exception as e:
-            db.add_user_coins(user_id, 100)
-            await interaction.followup.send(f"❌ Ticket kanalı açılırken bir hata oluştu: {e}. 100 Coin bakiyeniz hesabınıza iade edildi.", ephemeral=True)
-
-    @discord.ui.button(label="⭐ 20 Coin İle 24 Sa VIP Al", style=discord.ButtonStyle.secondary, emoji="👑")
-    async def buy_vip_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        user_id = interaction.user.id
-        
-        success = db.remove_user_coins(user_id, 20)
-        if not success:
-            u_data = db.get_user_data(user_id)
-            current_coins = u_data.get("coins", 0)
-            embed = discord.Embed(
-                title="❌ Yetersiz Coin Bakiyesi!",
-                description=f"VIP üyelik almak için **20 Coin** gereklidir.\n\n📌 **Mevcut Bakiyeniz:** `{current_coins} Coin`",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        db.set_user_vip(user_id, True, duration_hours=24)
-        u_data = db.get_user_data(user_id)
-        embed = discord.Embed(
-            title="🎉 VIP Üyelik Satın Alındı!",
-            description=f"Hesabınızdan **20 Coin** düşüldü ve **24 Saatlik VIP Üyelik** tanımlandı! 🚀\n\n📌 **Kalan Bakiyeniz:** `{u_data.get('coins', 0)} Coin`",
-            color=discord.Color.gold()
-        )
-        await interaction.followup.send(embed=embed, ephemeral=True)
-
-    @discord.ui.button(label="🎁 20 Coin İle +1 Stok Hakkı Al", style=discord.ButtonStyle.secondary, emoji="⚡")
-    async def buy_claim_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        user_id = interaction.user.id
-        
-        success = db.remove_user_coins(user_id, 20)
-        if not success:
-            u_data = db.get_user_data(user_id)
-            current_coins = u_data.get("coins", 0)
-            embed = discord.Embed(
-                title="❌ Yetersiz Coin Bakiyesi!",
-                description=f"Ekstra stok hakkı almak için **20 Coin** gereklidir.\n\n📌 **Mevcut Bakiyeniz:** `{current_coins} Coin`",
-                color=discord.Color.red()
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-            return
-
-        db.reset_user_cooldown(user_id)
-        u_data = db.get_user_data(user_id)
-        embed = discord.Embed(
-            title="🎉 Ekstra Stok Hakkı Satın Alındı!",
-            description=f"Hesabınızdan **20 Coin** düşüldü ve bekleme süreniz sıfırlandı! Hemen stok alabilirsiniz. 🎁\n\n📌 **Kalan Bakiyeniz:** `{u_data.get('coins', 0)} Coin`",
-            color=discord.Color.green()
-        )
-        await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 # --- ADMIN MODALS & SELECTS ---
@@ -455,7 +213,10 @@ class AddStockModal(discord.ui.Modal, title="📦 Servise Stok Ekle"):
         self.add_item(self.stock_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         lines = self.stock_input.value.strip().split("\n")
         added_count = db.add_stock(self.service_id, lines)
         total_stock = db.get_stock_count(self.service_id)
@@ -490,7 +251,10 @@ class RestockAnnouncementModal(discord.ui.Modal, title="📢 Stok Yenileme Duyur
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         embed = discord.Embed(
             title=self.announcement_title.value,
             description=self.announcement_content.value,
@@ -523,7 +287,7 @@ class AdminServiceSelectForStock(discord.ui.Select):
         for s in services:
             count = db.get_stock_count(s["id"])
             cat = "⭐ VIP" if s.get("category") == "vip" else "🎁 FREE"
-            is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip"] or s.get("is_unlimited", False)
+            is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"] or s.get("is_unlimited", False)
             is_ticket = s.get("requires_ticket", False)
             if is_ticket:
                 count_str = "🎫 Ticket Manuel"
@@ -554,7 +318,10 @@ class AdminServiceSelectForStock(discord.ui.Select):
             modal = AddStockModal(service_id=service_id, service_name=service["name"])
             await interaction.response.send_modal(modal)
         elif self.action == "clear":
-            await interaction.response.defer(ephemeral=True)
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except Exception:
+                pass
             removed = db.clear_stock(service_id)
             await interaction.followup.send(
                 f"🗑️ **{service['name']}** servisinin **{removed}** adet stoğu sıfırlandı!",
@@ -567,7 +334,10 @@ class AdminResetUserSelect(discord.ui.UserSelect):
         super().__init__(placeholder="👇 Günlük hakkı sıfırlanacak üyeyi seçin...", min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         target_user = self.values[0]
         db.reset_user_cooldown(target_user.id)
         embed = discord.Embed(
@@ -583,7 +353,10 @@ class AdminVIPUserSelect(discord.ui.UserSelect):
         super().__init__(placeholder="👇 Süresiz VIP verilecek veya kaldırılacak üyeyi seçin...", min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         target_user = self.values[0]
         is_current_vip = db.is_user_vip_db(target_user.id)
         new_status = not is_current_vip
@@ -603,7 +376,10 @@ class Admin1DayVIPUserSelect(discord.ui.UserSelect):
         super().__init__(placeholder="🏆 Kazanan Üyeyi Seç (24 Saatlik VIP Ver)...", min_values=1, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         target_user = self.values[0]
         db.set_user_vip(target_user.id, True, duration_hours=24)
 
@@ -657,12 +433,15 @@ class AdminPanelView(discord.ui.View):
 
     @discord.ui.button(label="📊 İstatistikler", style=discord.ButtonStyle.primary, emoji="📊")
     async def stats_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         stats = db.get_admin_stats()
         uptime_str = format_seconds(time.time() - BOT_START_TIME)
 
         embed = discord.Embed(
-            title="📊 LeaksTr Yöntici İstatistik & Rapor Paneli",
+            title="📊 LeaksTr Yönetici İstatistik & Rapor Paneli",
             description="Sunucunun ve generator botunun anlık detaylı verileri aşağıda raporlanmıştır:",
             color=discord.Color.gold(),
             timestamp=discord.utils.utcnow()
@@ -671,17 +450,15 @@ class AdminPanelView(discord.ui.View):
         embed.add_field(name="📥 Bekleyen Stok Sayısı", value=f"**{stats['total_current_stock']:,}** adet", inline=True)
         embed.add_field(name="🚀 Toplam Teslim Edilen Stok", value=f"**{stats['total_claims_all_time']:,}** adet", inline=True)
 
-        embed.add_field(name="🪙 Dolaşımdaki Coin", value=f"**{stats['total_coins_in_circulation']:,} Coin**", inline=True)
         embed.add_field(name="👥 Kayıtlı Üye Sayısı", value=f"**{stats['total_registered_users']}** üye", inline=True)
         embed.add_field(name="⭐ Aktif VIP Üye Sayısı", value=f"**{stats['total_vip_users']}** üye", inline=True)
-
         embed.add_field(name="🗣️ Chat Şartı Sağlayan Üye", value=f"**{stats['chatted_users_count']}** üye", inline=True)
+
         embed.add_field(name="🔗 Toplam Yapılan Davet", value=f"**{stats['total_invites']}** davet", inline=True)
         embed.add_field(name="🔥 En Çok Alınan Servis", value=f"**{stats['most_claimed_service']}**", inline=True)
-
-        embed.add_field(name="⏱️ Bot Çalışma Süresi (Uptime)", value=f"**{uptime_str}**", inline=True)
         embed.add_field(name="⚡ Anlık API Gecikmesi (Ping)", value=f"**{round(bot.latency * 1000)} ms**", inline=True)
 
+        embed.add_field(name="⏱️ Bot Çalışma Süresi (Uptime)", value=f"**{uptime_str}**", inline=False)
         embed.set_footer(text="LeaksTr Admin Analytics System • Canlı Veri")
         await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -722,7 +499,7 @@ class ServiceSelect(discord.ui.Select):
             for s in services:
                 count = db.get_stock_count(s["id"])
                 emoji = s.get("emoji", "🎁")
-                is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip"] or s.get("is_unlimited", False)
+                is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"] or s.get("is_unlimited", False)
                 is_ticket = s.get("requires_ticket", False) or s.get("id") in ["mailchecker_tool", "nitro_promo", "spotify_premium_vip"]
                 
                 if is_ticket:
@@ -749,7 +526,10 @@ class ServiceSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
 
         service_id = self.values[0]
         if service_id == "none":
@@ -917,7 +697,7 @@ class ServiceSelect(discord.ui.Select):
                 return
 
         # 7. STANDARD STOCK CLAIM & RETRIEVAL
-        is_unlimited = (service_id in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip"]) or service.get("is_unlimited", False)
+        is_unlimited = (service_id in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"]) or service.get("is_unlimited", False)
         stock_count = db.get_stock_count(service_id)
 
         if stock_count <= 0:
@@ -1011,7 +791,10 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_free_services"
     )
     async def free_services_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         view = CategorySelectView(category="free", is_vip=False)
         embed = discord.Embed(
             title="🎁 Free (Ücretsiz) Servisler",
@@ -1027,7 +810,10 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_vip_services"
     )
     async def vip_services_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         member = interaction.guild.get_member(interaction.user.id) if interaction.guild else None
         user_is_vip = is_vip_user(member) if member else False
 
@@ -1049,46 +835,16 @@ class MainPanelView(discord.ui.View):
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
     @discord.ui.button(
-        label="Coin Market",
-        style=discord.ButtonStyle.success,
-        emoji="🪙",
-        custom_id="btn_coin_market"
-    )
-    async def coin_market_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
-        u_data = db.get_user_data(interaction.user.id)
-        coins = u_data.get("coins", 0)
-
-        embed = discord.Embed(
-            title="🪙 LeaksTr Coin Mağazası & Bakiyem",
-            description=(
-                f"Hoş geldiniz! Hesabınızda **{coins} Coin** bulunmaktadır.\n\n"
-                f"💳 **Hesap.com.tr İle Coin Satın Alma:**\n"
-                f"• **20 TL = 100 Coin**\n"
-                f"• [👉 Hesap.com.tr Mağazamız İçin Tıklayın](https://hesap.com.tr)\n\n"
-                f"🛒 **Coin Harcama Fiyatları:**\n"
-                f"• **🎧 100 Coin = Spotify Premium Bireysel (Ticket)**\n"
-                f"• **🚀 100 Coin = Discord Nitro Promo (Ticket)**\n"
-                f"• **🤖 50 Coin = Google Gemini Pro (Sınırsız Hesabı)**\n"
-                f"• **⭐ 20 Coin = 24 Saatlik VIP Üyelik**\n"
-                f"• **🎁 20 Coin = +1 Ekstra Stok Hakkı (Sıfırlama)**\n\n"
-                f"*(Aşağıdaki butonları kullanarak bakiyenizle anında satın alabilirsiniz)*"
-            ),
-            color=discord.Color.gold(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.set_footer(text="LeaksTr Coin Sistemi • Otomatik Anında Teslimat")
-        view = CoinMarketView()
-        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
-
-    @discord.ui.button(
         label="Günlük Şans Çarkı",
         style=discord.ButtonStyle.primary,
         emoji="🎰",
         custom_id="btn_daily_wheel"
     )
     async def daily_wheel_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         user = interaction.user
         
         can_spin, remaining_sec = db.check_user_wheel_spin(user.id)
@@ -1096,7 +852,7 @@ class MainPanelView(discord.ui.View):
             unlock_timestamp = int(time.time() + remaining_sec)
             embed = discord.Embed(
                 title="⏳ Şans Çarkı Bekleme Süresi!",
-                description=f"Günlük Şans Çarkını çevirdiniz!\n\n⏱️ **Yeniden Çevirme Hakkı:** <t:{unlock_timestamp}:R> ({format_seconds(remaining_sec)})",
+                description=f"Günlük Şans Çarkını zaten çevirdiniz!\n\n⏱️ **Yeniden Çevirme Hakkı:** <t:{unlock_timestamp}:R> ({format_seconds(remaining_sec)})",
                 color=discord.Color.orange()
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -1105,9 +861,9 @@ class MainPanelView(discord.ui.View):
         # RECORD SPIN
         db.record_wheel_spin(user.id)
 
-        # ROLL OUTCOME
-        outcomes = ["claim", "vip", "coin", "steam", "key", "miss"]
-        weights = [30, 20, 15, 15, 10, 10]
+        # ROLL OUTCOME (40% Claim, 30% VIP, 20% Steam, 10% Miss)
+        outcomes = ["claim", "vip", "steam", "miss"]
+        weights = [40, 30, 20, 10]
         won_type = random.choices(outcomes, weights=weights, k=1)[0]
 
         if won_type == "claim":
@@ -1120,11 +876,6 @@ class MainPanelView(discord.ui.View):
             title = "⭐ TEBRİKLER! 24 SAATLİK VIP ÜYELİK KAZANDINIZ!"
             desc = "24 saat boyunca tüm VIP servislerden stok alma hakkınız aktif edildi! 🚀"
             color = discord.Color.gold()
-        elif won_type == "coin":
-            tot = db.add_user_coins(user.id, 50)
-            title = "🪙 TEBRİKLER! 50 COIN KAZANDINIZ!"
-            desc = f"Hesabınıza 50 Coin tanımlandı! (Güncel Bakiyeniz: {tot} Coin) 💰"
-            color = discord.Color.gold()
         elif won_type == "steam":
             acc = db.get_stock_account("steam_free")
             if acc:
@@ -1134,11 +885,6 @@ class MainPanelView(discord.ui.View):
                 title = "🎮 TEBRİKLER! OYUNLU STEAM HAKKI KAZANDINIZ!"
                 desc = "Steam stoklarımız yenilendiğinde hesabınız teslim edilecektir."
             color = discord.Color.purple()
-        elif won_type == "key":
-            keys = db.create_promo_keys("coin", "100", count=1)
-            title = "🔑 TEBRİKLER! 100 COINLİK SÜRPRİZ PROMO KODU KAZANDINIZ!"
-            desc = f"Kazandığınız Promo Kodu:\n`{keys[0]}`\n\nBu kodu `/kod-kullan {keys[0]}` yazarak 100 Coin bakiyenize dönüştürebilirsiniz!"
-            color = discord.Color.teal()
         else:
             title = "❌ MAALESEF ŞANSINA KÜS!"
             desc = "Çark bu sefer boş geldi. Şansını yarın tekrar dene! 💪"
@@ -1160,7 +906,10 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_report_broken_stock"
     )
     async def report_broken_stock_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         user = interaction.user
         guild = interaction.guild
 
@@ -1223,7 +972,10 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_stock_status"
     )
     async def stock_status_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         services = db.get_services()
         
         free_services = [s for s in services if s.get("category") == "free"]
@@ -1239,7 +991,7 @@ class MainPanelView(discord.ui.View):
         free_text = ""
         for s in free_services:
             count = db.get_stock_count(s["id"])
-            is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip"] or s.get("is_unlimited", False)
+            is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"] or s.get("is_unlimited", False)
             is_ticket = s.get("requires_ticket", False) or s.get("id") in ["mailchecker_tool", "nitro_promo", "spotify_premium_vip"]
             
             status = "🟢"
@@ -1256,7 +1008,7 @@ class MainPanelView(discord.ui.View):
         vip_text = ""
         for s in vip_services:
             count = db.get_stock_count(s["id"])
-            is_unlimited = s.get("id") in ["gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip"] or s.get("is_unlimited", False)
+            is_unlimited = s.get("id") in ["gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"] or s.get("is_unlimited", False)
             is_ticket = s.get("requires_ticket", False) or s.get("id") in ["nitro_promo", "spotify_premium_vip"]
             status = "🟢"
             if is_ticket:
@@ -1282,7 +1034,10 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_user_profile"
     )
     async def user_profile_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         user = interaction.user
         member = interaction.guild.get_member(user.id) if interaction.guild else None
         
@@ -1317,7 +1072,6 @@ class MainPanelView(discord.ui.View):
         )
         embed.set_thumbnail(url=user.display_avatar.url)
         embed.add_field(name="👑 Üyelik Statüsü", value=f"**{status_str}**", inline=True)
-        embed.add_field(name="🪙 Coin Bakiyesi", value=f"**{user_data.get('coins', 0)} Coin**", inline=True)
         embed.add_field(name="💬 Özel Durum Şartı", value=f"**{custom_st_txt}**", inline=True)
         embed.add_field(name="🗣️ Chat Mesaj Şartı", value=f"**{chat_st_txt}**", inline=True)
         embed.add_field(name="🛡️ Anti-Alt Durumu", value=f"**{alt_txt}**", inline=True)
@@ -1344,9 +1098,12 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_disclaimer"
     )
     async def disclaimer_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         embed = discord.Embed(
-            title="秤 LEAKSTR YASAL UYARI & SORUMLULUK REDDİ BEYANI",
+            title="⚖️ LEAKSTR YASAL UYARI & SORUMLULUK REDDİ BEYANI",
             description=(
                 "**1. Taraf ve Sorumluluk Sınırı:**\n"
                 "LeaksTr Generator, bot yöneticileri ve sunucu sahipleri; bu sistem üzerinden "
@@ -1373,7 +1130,10 @@ class MainPanelView(discord.ui.View):
         custom_id="btn_leaderboard"
     )
     async def leaderboard_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer(ephemeral=True)
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception:
+            pass
         leaderboard = db.get_leaderboard(limit=10)
 
         embed = discord.Embed(
@@ -1390,9 +1150,8 @@ class MainPanelView(discord.ui.View):
             u_id = entry["user_id"]
             claims = entry["claims"]
             invites = entry["invites"]
-            coins = entry.get("coins", 0)
             vip_mark = "⭐" if entry["is_vip"] else ""
-            rank_text += f"{medal} <@{u_id}> {vip_mark} • **{claims} Stok** | **{coins} Coin** | **{invites} Davet**\n"
+            rank_text += f"{medal} <@{u_id}> {vip_mark} • **{claims} Stok** | **{invites} Davet**\n"
 
         embed.add_field(name="Top 10 Üye", value=rank_text or "Henüz veri yok.", inline=False)
         await interaction.followup.send(embed=embed, ephemeral=True)
@@ -1468,7 +1227,7 @@ async def on_ready():
     await bot.change_presence(
         activity=discord.Activity(
             type=discord.ActivityType.watching,
-            name="🪙 Coin Market, Free & VIP | !panel / !sync"
+            name="🎁 Free & ⭐ VIP Stoklar | !panel / !sync"
         )
     )
 
@@ -1511,14 +1270,13 @@ async def create_panel_embed_and_send(channel: discord.TextChannel, guild: disco
     embed = discord.Embed(
         title="⚡ GENERATOR & STOK DAĞITIM PANELS ⚡",
         description=(
-            "Hoş geldiniz! Aşağıdaki butonları kullanarak **Ücretsiz**, **VIP**, **Coin Market** veya **Şans Çarkından** "
+            "Hoş geldiniz! Aşağıdaki butonları kullanarak **Ücretsiz**, **VIP** veya **Şans Çarkından** "
             "hesap/kod/IPTV temin edebilirsiniz.\n\n"
             "📌 **Hızlı Kullanım Rehberi & Şartlar:**\n"
             f"• **💬 Şart 1 (Durum):** Profil durumunuzda **`{req_st}`** olmalıdır.\n"
             "• **🗣️ Şart 2 (Chat):** Sunucu kanallarından birine **en az 1 mesaj** yazmış olmalısınız.\n"
             "• **🎁 FREE Servisler:** Her 24 saatte 1 adet ücretsiz hesap alabilirsiniz.\n"
             f"• **⭐ VIP Servisler:** VIP üyeler için günlük **{vip_limit} adet** yüksek kaliteli stok alma hakkı!\n"
-            "• **🪙 Coin Market:** 20 TL = 100 Coin! (Spotify Premium, Nitro Promo, Gemini Pro, VIP)\n"
             "• **⚠️ Hatalı Stok Bildir:** Hatalı hesaplar için ekran görüntülü anında telafi kanalı açılır!\n"
             "• **📺 IPTV Servisleri:** Canlı IPTV M3U8 ve Embed yayın linkleri.\n"
             "• **🚀 Nitro Booster Perks:** Nitro basanlara özel 3 adet günlük alma hakkı!\n"
@@ -1597,12 +1355,15 @@ async def istatistik_command(interaction: discord.Interaction):
         await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
 
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
     stats = db.get_admin_stats()
     uptime_str = format_seconds(time.time() - BOT_START_TIME)
 
     embed = discord.Embed(
-        title="📊 LeaksTr Yöntici İstatistik & Rapor Paneli",
+        title="📊 LeaksTr Yönetici İstatistik & Rapor Paneli",
         description="Sunucunun ve generator botunun anlık detaylı verileri aşağıda raporlanmıştır:",
         color=discord.Color.gold(),
         timestamp=discord.utils.utcnow()
@@ -1611,60 +1372,26 @@ async def istatistik_command(interaction: discord.Interaction):
     embed.add_field(name="📥 Bekleyen Stok Sayısı", value=f"**{stats['total_current_stock']:,}** adet", inline=True)
     embed.add_field(name="🚀 Toplam Teslim Edilen Stok", value=f"**{stats['total_claims_all_time']:,}** adet", inline=True)
 
-    embed.add_field(name="🪙 Dolaşımdaki Coin", value=f"**{stats['total_coins_in_circulation']:,} Coin**", inline=True)
     embed.add_field(name="👥 Kayıtlı Üye Sayısı", value=f"**{stats['total_registered_users']}** üye", inline=True)
     embed.add_field(name="⭐ Aktif VIP Üye Sayısı", value=f"**{stats['total_vip_users']}** üye", inline=True)
-
     embed.add_field(name="🗣️ Chat Şartı Sağlayan Üye", value=f"**{stats['chatted_users_count']}** üye", inline=True)
+
     embed.add_field(name="🔗 Toplam Yapılan Davet", value=f"**{stats['total_invites']}** davet", inline=True)
     embed.add_field(name="🔥 En Çok Alınan Servis", value=f"**{stats['most_claimed_service']}**", inline=True)
-
-    embed.add_field(name="⏱️ Bot Çalışma Süresi (Uptime)", value=f"**{uptime_str}**", inline=True)
     embed.add_field(name="⚡ Anlık API Gecikmesi (Ping)", value=f"**{round(bot.latency * 1000)} ms**", inline=True)
 
+    embed.add_field(name="⏱️ Bot Çalışma Süresi (Uptime)", value=f"**{uptime_str}**", inline=False)
     embed.set_footer(text="LeaksTr Admin Analytics System • Canlı Veri")
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="coin-ver", description="🪙 Bir kullanıcıya Coin bakiye yükler (Admin)")
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(kullanici="Coin verilecek üye", miktar="Eklenecek Coin miktarı (Örn: 100)")
-async def coin_ver_command(interaction: discord.Interaction, kullanici: discord.User, miktar: int):
-    if not is_admin_user(interaction.user):
-        await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
-        return
-
-    new_bal = db.add_user_coins(kullanici.id, miktar)
-    embed = discord.Embed(
-        title="🪙 Coin Yüklendi!",
-        description=f"**{kullanici.mention}** kullanıcısına **{miktar} Coin** eklendi!\nGüncel Bakiyesi: **{new_bal} Coin**",
-        color=discord.Color.green()
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@bot.tree.command(name="coin-al", description="🪙 Bir kullanıcının bakiyesinden Coin düşer (Admin)")
-@app_commands.default_permissions(administrator=True)
-@app_commands.describe(kullanici="Coin düşülecek üye", miktar="Düşülecek Coin miktarı")
-async def coin_al_command(interaction: discord.Interaction, kullanici: discord.User, miktar: int):
-    if not is_admin_user(interaction.user):
-        await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
-        return
-
-    db.remove_user_coins(kullanici.id, miktar)
-    u_data = db.get_user_data(kullanici.id)
-    embed = discord.Embed(
-        title="🪙 Coin Düşüldü!",
-        description=f"**{kullanici.mention}** kullanıcısının bakiyesinden **{miktar} Coin** düşüldü.\nGüncel Bakiyesi: **{u_data.get('coins', 0)} Coin**",
-        color=discord.Color.orange()
-    )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-@bot.tree.command(name="kod-kullan", description="🎟️ Promo kodunuzu bozdurarak VIP, Coin veya Ekstra Stok kazanın!")
+@bot.tree.command(name="kod-kullan", description="🎟️ Promo kodunuzu bozdurarak VIP veya Ekstra Stok kazanın!")
 @app_commands.describe(kod="Bozdurmak istediğiniz promo kodu (Örn: LEAK-A1B2-C3D4)")
 async def kod_kullan_command(interaction: discord.Interaction, kod: str):
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
     success, msg = db.redeem_promo_key(interaction.user.id, kod)
     
     embed = discord.Embed(
@@ -1678,13 +1405,12 @@ async def kod_kullan_command(interaction: discord.Interaction, kod: str):
 @bot.tree.command(name="key-olustur", description="🔑 Çekiliş ve Etkinlikler için Promo Key Üretir (Admin)")
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(
-    tur="Ödül Türü (vip, claim, steam, coin)",
-    deger="Ödül Değeri (VIP için saat, coin için miktar)",
+    tur="Ödül Türü (vip, claim, steam)",
+    deger="Ödül Değeri (VIP için saat)",
     adet="Kaç adet key üretilsin?"
 )
 @app_commands.choices(tur=[
     app_commands.Choice(name="⭐ VIP Üyelik Key", value="vip"),
-    app_commands.Choice(name="🪙 Coin Bakiye Key", value="coin"),
     app_commands.Choice(name="🎁 +1 Stok Hakkı Key", value="claim"),
     app_commands.Choice(name="🎮 Steam Oyun Hesabı Key", value="steam")
 ])
@@ -1693,7 +1419,10 @@ async def key_olustur_command(interaction: discord.Interaction, tur: str, deger:
         await interaction.response.send_message("❌ Bu komutu sadece Yöneticiler kullanabilir!", ephemeral=True)
         return
 
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
     created_keys = db.create_promo_keys(reward_type=tur, reward_value=deger, count=adet)
 
     key_str = "\n".join([f"`{k}`" for k in created_keys])
@@ -1707,7 +1436,10 @@ async def key_olustur_command(interaction: discord.Interaction, tur: str, deger:
 
 @bot.tree.command(name="davetlerim", description="👥 Davet sayınızı ve VIP ödül ilerlemenizi görün")
 async def davetlerim_command(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
     u_data = db.get_user_data(interaction.user.id)
     invites = u_data.get("invites", 0)
     cfg = db.get_config()
@@ -1724,9 +1456,12 @@ async def davetlerim_command(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(name="liderlik", description="🏆 En çok stok alan, coin sahibi ve davet yapan üyeler liderlik tablosu")
+@bot.tree.command(name="liderlik", description="🏆 En çok stok alan ve davet yapan üyeler liderlik tablosu")
 async def liderlik_command(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
     leaderboard = db.get_leaderboard(limit=10)
 
     embed = discord.Embed(
@@ -1743,9 +1478,8 @@ async def liderlik_command(interaction: discord.Interaction):
         u_id = entry["user_id"]
         claims = entry["claims"]
         invites = entry["invites"]
-        coins = entry.get("coins", 0)
         vip_mark = "⭐" if entry["is_vip"] else ""
-        rank_text += f"{medal} <@{u_id}> {vip_mark} • **{claims} Stok** | **{coins} Coin** | **{invites} Davet**\n"
+        rank_text += f"{medal} <@{u_id}> {vip_mark} • **{claims} Stok** | **{invites} Davet**\n"
 
     embed.add_field(name="Top 10 Üye", value=rank_text or "Henüz veri yok.", inline=False)
     await interaction.followup.send(embed=embed, ephemeral=True)
@@ -1768,7 +1502,10 @@ async def slash_dosya_stok(interaction: discord.Interaction, servis_id: str, dos
         await interaction.response.send_message("❌ Yüklenen dosya `.txt` uzantılı olmalıdır!", ephemeral=True)
         return
 
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except Exception:
+        pass
 
     try:
         content_bytes = await dosya.read()
@@ -1879,7 +1616,7 @@ async def stok_liste_command(interaction: discord.Interaction):
     for s in services:
         count = db.get_stock_count(s["id"])
         category_str = "⭐ VIP" if s.get("category") == "vip" else "🎁 FREE"
-        is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip"] or s.get("is_unlimited", False)
+        is_unlimited = s.get("id") in ["steam_free", "gemini_pro", "mc_vip", "tonguc_vip", "tod_tv_vip", "prime_video_vip", "twitch_vip", "simmarket_vip"] or s.get("is_unlimited", False)
         is_ticket = s.get("requires_ticket", False) or s.get("id") in ["mailchecker_tool", "nitro_promo", "spotify_premium_vip"]
         
         if is_ticket:

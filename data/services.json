@@ -81,25 +81,25 @@
   },
   {
     "id": "nitro_promo",
-    "name": "Discord Nitro Promo (100 Coin)",
+    "name": "Discord Nitro Promo (Ticket)",
     "category": "vip",
     "emoji": "🚀",
-    "description": "100 Coin İle Satın Alınabilir Discord Nitro Promo Linki"
+    "description": "VIP Özel Discord Nitro Promo (Ticket Açılır)"
   },
   {
     "id": "gemini_pro",
-    "name": "Google Gemini Pro (50 Coin)",
+    "name": "Google Gemini Pro (Sınırsız)",
     "category": "vip",
     "emoji": "🤖",
-    "description": "50 Coin İle Sınırsız Alınabilir Google Gemini Pro Hesap",
+    "description": "VIP Özel Google Gemini Pro Hesap",
     "is_unlimited": true
   },
   {
     "id": "spotify_premium_vip",
-    "name": "Spotify Premium Bireysel (100 Coin)",
+    "name": "Spotify Premium Bireysel (Ticket)",
     "category": "vip",
     "emoji": "🎧",
-    "description": "100 Coin İle Satın Alınabilir Spotify Premium Bireysel (Ticket)",
+    "description": "VIP Özel Spotify Premium Bireysel (Ticket Açılır)",
     "requires_ticket": true
   },
   {
